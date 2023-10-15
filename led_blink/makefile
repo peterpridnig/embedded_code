@@ -15,8 +15,8 @@ TARGET = led_blink
 all: $(TARGET)
 
 $(TARGET): $(TARGET).sh
-	cp $(TARGET).sh ../../rootfs_nfs/root/$(TARGET)/$(TARGET).sh
-	chmod 760 ../../rootfs_nfs/root/$(TARGET)/$(TARGET).sh
+	cp $(TARGET).sh ../../rootfs_nfs/root/$(TARGET).sh
+	chmod 760 ../../rootfs_nfs/root/$(TARGET).sh
 clean:
 	$(RM) *~
 

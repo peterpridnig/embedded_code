@@ -5,7 +5,7 @@
 
 if [[ $# -eq 0 ]] ; then
     echo Usage
-    echo 'led_blink red|green'
+    echo 'led_blink red|green|pin'
     echo
     exit 1
 fi
@@ -46,14 +46,31 @@ ctrl_c() {
 # => 12: gpio-0-31 GPIOS [12 - 27] PINS [12 - 27]
 # i.e. GPIO14
 
+# PIN
+# Header: P8
+# Pin:    #17
+# BB_Pinmux.ods:
+# => P8_17 = GPIO0_27 / Addr 0x02C
+#
+# cat /sys/kernel/debug/pinctrl/44e10800.pinmux-pinctrl-single/pins | grep 44e1082c
+# => pin 11 (PIN11) 27:gpio-96-127 44e1082c 00000027 pinctrl-single 
+# i.e. PIN11
+#
+# cat /sys/kernel/debug/pinctrl/44e10800.pinmux-pinctrl-single/gpio-ranges | grep gpio-96-127
+# => 26: gpio-96-127 GPIOS [122 - 123] PINS [10 - 11]
+# i.e. GPIO123
+
+
 echo exporting...
 GPIO=122
 
 case "$1" in
     red) GPIO=122
-    ;;
+	 ;;
     green) GPIO=14
-    ;;
+	   ;;
+    pin) GPIO=123
+	 ;;
 esac
 
 echo $GPIO > $TARGET/export
@@ -68,8 +85,8 @@ while true
 do
     echo 1 > $TARGET/gpio$GPIO/value
     echo ON
-    sleep 1
+    sleep 0.1
     echo 0 > $TARGET/gpio$GPIO/value
     echo OFF
-    sleep 1
+    sleep 0.1
 done
