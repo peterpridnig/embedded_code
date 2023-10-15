@@ -1,0 +1,9 @@
+
+arm-cortex_a8-linux-gnueabihf-gcc -print-sysroot
+
+
+arm-cortex_a8-linux-gnueabihf-gcc helloworld.c -o helloworld
+file helloworld
+
+arm-cortex_a8-linux-gnueabihf-gcc -static helloworld.c -o helloworld
+

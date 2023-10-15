@@ -1,0 +1,19 @@
+#!/bin/bash
+
+echo BLINK
+echo preparing...
+cd /sys/class/gpio
+echo 122 > export
+cd gpio122
+echo out > direction 
+echo "press [CTRL+C] to stop.."
+
+while true
+do
+    echo 1 > /sys/class/gpio/gpio122/value
+    echo ON
+    sleep 1
+    echo 0 > /sys/class/gpio/gpio122/value
+    echo OFF
+    sleep 1
+done
