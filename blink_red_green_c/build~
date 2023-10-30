@@ -1,0 +1,8 @@
+#!/bin/bash
+g++ simple.cpp GPIO.cpp -o simple -pthread
+
+arm-cortex_a8-linux-gnueabihf-g++ simple_red.cpp GPIO.cpp -o simple_red -pthread
+sudo cp simple_red ../../rootfs_nfs/root/
+sudo chmod 760 ../../rootfs_nfs/root/simple_red 
+
+

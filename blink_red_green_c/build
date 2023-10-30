@@ -1,0 +1,8 @@
+#!/bin/bash
+g++ blink_red_green.cpp GPIO.cpp -o simple -pthread
+
+arm-cortex_a8-linux-gnueabihf-g++ blink_red_green.cpp GPIO.cpp -o blink_red_green -pthread
+sudo cp blink_red_green ../../rootfs_nfs/root/
+sudo chmod 760 ../../rootfs_nfs/root/blink_red_green 
+
+
