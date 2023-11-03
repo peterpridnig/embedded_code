@@ -1,0 +1,7 @@
+CFLAGS=-g -Wall
+LDLIBS=-lrt
+
+all: gpio122blink
+
+clean:
+	rm -f gpio1bblink*.o

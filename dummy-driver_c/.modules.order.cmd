@@ -1,0 +1,1 @@
+cmd_/home/peter/mastering_beaglebone/userland/code/dummy-driver_c/modules.order := {   echo /home/peter/mastering_beaglebone/userland/code/dummy-driver_c/dummy.ko; :; } | awk '!x[$$0]++' - > /home/peter/mastering_beaglebone/userland/code/dummy-driver_c/modules.order

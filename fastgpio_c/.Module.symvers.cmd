@@ -1,0 +1,1 @@
+cmd_/home/peter/mastering_beaglebone/userland/code/fastgpio_c/Module.symvers := sed 's/\.ko$$/\.o/' /home/peter/mastering_beaglebone/userland/code/fastgpio_c/modules.order | scripts/mod/modpost -m -a  -o /home/peter/mastering_beaglebone/userland/code/fastgpio_c/Module.symvers -e -i Module.symvers   -T -

@@ -1,0 +1,1 @@
+cmd_/home/peter/mastering_beaglebone/userland/code/dummy-driver_c/dummy.mod := { echo  /home/peter/mastering_beaglebone/userland/code/dummy-driver_c/dummy.o;  echo; } > /home/peter/mastering_beaglebone/userland/code/dummy-driver_c/dummy.mod
