@@ -16,6 +16,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
+#include <time.h>
 
 /* Address of the ADC */
 #define I2C_ADDRESS 0x48
@@ -97,16 +98,17 @@ int Convert(int AIN)
   // 7:5 :   100: 1600 SPS (default)
   // DR      101: 2400 SPS
   // 4 :     0 traditional
-  // COMP    1 window
+  // COMPMD  1 window
   // 3 :     0 active lo (default)
   // COMPPOL 1 active hi
   // 2 :     0 (default)
   // COMPLAT
   // 1:0 :   11 (default
+  // QUE
   
   // a xy    b 
-  // 1100 0101 1000 0011
-  // C    1    8    3
+  // 1100 0101 1000 0000
+  // C    1    8    0
   // a= start conv
   // b=single conv
   // xy=AIN0,1,2
@@ -126,24 +128,26 @@ int Convert(int AIN)
   else if (AIN==2) {AIN=3;}
   else if (AIN==3) {AIN=0;}
   */
-  AIN = (AIN+1) & 0x3;
+  //AIN = (AIN+1) & 0x3; //attention, next sample is from the previous conversion!
   
   int n;
   char buf[10];
   //  WriteReg(1,0xC7,0x83);
   buf[0] = 1; //config reg
   buf[1] = 0xC5 | ( (AIN & 3) << 4);
-  buf[2] = 0x83;
+  buf[2] = 0x80;
   
-  n = write(f, buf, 3);
+  n = write(f, buf, 3); // start single conv
   if (n == -1) {
     perror("write");
     return 1;
   }
 
   buf[0] = 0; //conv reg
-	
-  n = write(f, buf, 1);
+
+  usleep(600); //wait for conversion to finish
+  
+  n = write(f, buf, 1); // prepare conf reg
   if (n == -1) {
     perror("write");
     return -1;
@@ -180,11 +184,16 @@ int main(void)
 
   ReadReg(0); //conv
   ReadReg(1); //conf
+  ReadReg(2); //lo msb=0=> RDY signal
+  WriteReg(2,0x00, 0x00);
   ReadReg(2);
+  
+  ReadReg(3); //hi msb=1=> RDY-signal
+  WriteReg(3,0xff,0xff);
   ReadReg(3);
 
- 
-
+  //COMP_QUE[1:0] bits to any 2-bit ne 11
+  
   /*
   WriteReg(1,0x44,0x80);
   ReadReg(1); //conf
@@ -195,12 +204,13 @@ int main(void)
 
   //printf("0x%x", 0xC5 | ( (2 & 3) << 4));
 
-	 
+
   while(1){
     printf("AIN0=%d AIN1=%d AIN2=%d AIN3=%d \n",Convert(0), Convert(1), Convert(2), Convert(3));
-    //                                          AIN3=00     AIN0=01     AIN1=10     AIN2=11
-
+    //                                          AIN0=00     AIN1=01     AIN2=10     AIN3=11
+    //                                          z           y           x 
   }
+
   
   close(f);
   return 0;
