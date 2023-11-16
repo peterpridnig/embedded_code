@@ -16,9 +16,8 @@ enum AnalogInput {AIN0, AIN1, AIN2, AIN3};
 
 /*
 struct sData {
-  char bit15=1;
-  char bit1412=0x100;
-
+  char msb;
+  char lsb;
 };
 
 union uData {
@@ -29,6 +28,9 @@ union uData {
 
 class ADS1015 {
 private:
+  int ConfigRegData =0x0;
+  int HiRegData = 0x0;
+  int LoThreshRegData = 0x0;
   
   GPIO *RDY;
   void exportGPIO(string gpionr);
@@ -79,10 +81,8 @@ ADS1015::ADS1015() {
 
 void ADS1015::exportGPIO(string gpionr){
   ofstream fs;
-  //fs.open("/sys/class/gpio/export");
-  string EXPORT_FILE  = "export";
-  fs.open(GPIO_PATH+EXPORT_FILE);
-  
+  fs.open("/sys/class/gpio/export");
+
   if (!fs.is_open()){
     perror("GPIO: write failed to open file ");
     exit(-1);
@@ -95,9 +95,7 @@ void ADS1015::exportGPIO(string gpionr){
 
 void ADS1015::unexportGPIO(string gpionr){
   ofstream fs;
-  //fs.open("/sys/class/gpio/unexport");
-  string UNEXPORT_FILE  = "unexport";
-  fs.open(GPIO_PATH+UNEXPORT_FILE);
+  fs.open("/sys/class/gpio/unexport");
 
   if (!fs.is_open()){
     perror("GPIO: write failed to open file ");
@@ -167,8 +165,6 @@ void ADS1015::WriteHiThreshReg(int value) { this->WriteI2CReg(3,value); };
 
 void ADS1015::Reset()
 {
-  //this->WriteI2CReg(1,0x0006);
-
   this->WriteConfigReg(0x8583);
   this->WriteLoThreshReg(0x8000);
   this->WriteHiThreshReg(0x7fff);
@@ -193,21 +189,19 @@ ADS1015::~ADS1015() {
 }
 
 int main(){
-  ADS1015* ADC = new ADS1015;
-  ADC->myblink();
+  ADS1015 ADC;
+  ADC.myblink();
   
-  ADC->Reset();
+  ADC.Reset();
   
-  cout << "Conv Reg=" << std::hex << ADC->ReadConvReg() << std::dec << endl;
-  cout << "Conf Reg=" << std::hex << ADC->ReadConfigReg() << std::dec << endl;
-  cout << "Lo   Reg=" << std::hex << ADC->ReadLoThreshReg() << std::dec << endl;
-  cout << "Hi   Reg=" << std::hex << ADC->ReadHiThreshReg() << std::dec << endl;
+  cout << "Conv Reg=" << std::hex << ADC.ReadConvReg() << std::dec << endl;
+  cout << "Conf Reg=" << std::hex << ADC.ReadConfigReg() << std::dec << endl;
+  cout << "Lo   Reg=" << std::hex << ADC.ReadLoThreshReg() << std::dec << endl;
+  cout << "Hi   Reg=" << std::hex << ADC.ReadHiThreshReg() << std::dec << endl;
 
-  ADC->WriteConfigReg(0x1234);
-  cout << "Conf Reg=" << std::hex << ADC->ReadConfigReg() << std::dec << endl;
-
-  delete (ADC);
-									 
+  ADC.WriteConfigReg(0x1234);
+  cout << "Conf Reg=" << std::hex << ADC.ReadConfigReg() << std::dec << endl;
+  
   return 0;
 }
 

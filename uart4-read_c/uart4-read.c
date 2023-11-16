@@ -72,7 +72,7 @@ int main(int argc, char *argv[]){
 
        if(c=='\n'){ //EOL
 	 command[count-1]='\0';  // replace /n with /0
-	 write(STDOUT_FILENO,"\n",1);
+	 //write(STDOUT_FILENO,"\n",1);
 	 //	 if (processCommand(command)==1){
 	 //	   printf("FOUND GPRMC!\n");
 	 //	 }
