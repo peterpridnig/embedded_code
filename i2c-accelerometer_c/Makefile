@@ -5,7 +5,7 @@
 # make CPP=arm-buildroot-linux-gnueabihf-g++
 
 LOCAL_CFLAGS ?= -Wall -g
-LDLIBS=-lrt GPIO.cpp
+LDLIBS=-lrt GPIO.cpp -I. ads1015.cpp
 PROGRAM = i2c-accelerometer
 
 $(PROGRAM): $(PROGRAM).cpp
