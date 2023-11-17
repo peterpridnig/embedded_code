@@ -15,8 +15,10 @@ TARGET = gpio_input
 all: $(TARGET)
 
 $(TARGET): $(TARGET).sh
-	cp $(TARGET).sh ../../rootfs_nfs/root/$(TARGET).sh
-	chmod 760 ../../rootfs_nfs/root/$(TARGET).sh
+	#cp $(TARGET).sh ../../rootfs_nfs/root/$(TARGET).sh
+	#chmod 760 ../../rootfs_nfs/root/$(TARGET).sh
+	scp $(TARGET).sh root@10.0.0.117:/root
+
 clean:
 	$(RM) *~
 
