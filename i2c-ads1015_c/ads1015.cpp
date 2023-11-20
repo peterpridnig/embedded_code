@@ -22,11 +22,6 @@ ADS1015::ADS1015(bool doblink) {
   this->exportGPIO(OUT_PIN);
   OUT=new GPIO(stoi(OUT_PIN)); //red led
   OUT->setDirection(OUTPUT);
-
-  this->exportGPIO(RDY_PIN);
-  RDY=new GPIO(stoi(RDY_PIN));
-  RDY->setDirection(INPUT);
-  RDY->setEdgeType(FALLING); //wait for falling edge
   
   i2c_fd = open(I2C_DEVICE, O_RDWR);
   if (i2c_fd < 0) {
@@ -39,9 +34,13 @@ ADS1015::ADS1015(bool doblink) {
     exit(-1);
   }
 
+  this->Reset(); //write reset config
 
-  this->Reset();
-  this->EnableRdy();
+  this->exportGPIO(RDY_PIN);
+  RDY=new GPIO(stoi(RDY_PIN));
+  RDY->setDirection(INPUT);
+  RDY->setEdgeType(FALLING); //wait for falling edge
+  this->EnableRdy(); //enable rdy signal and rdy input gpio
   
 }
 

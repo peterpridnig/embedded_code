@@ -1,3 +1,0 @@
-!#/bin/sh
-arm-cortex_a8-linux-gnueabihf-g++ -Wall -lg i2c-accelerometer.cpp ../blink_red_green_c/GPIO.cpp -static -o i2c-accelerometer
-scp i2c-accelerometer root@10.0.0.117:/root

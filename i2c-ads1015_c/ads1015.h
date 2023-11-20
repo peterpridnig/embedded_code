@@ -6,7 +6,8 @@ using namespace std;
 
 #define I2C_DEVICE "/dev/i2c-2"
 #define I2C_ADDRESS 0x48
-#define OUT_PIN "122" //P8_14
+//#define OUT_PIN "122" //P8_14 red
+#define OUT_PIN "14" //P8_16 green
 #define RDY_PIN "15" //P8_15
 
 /*
@@ -55,6 +56,7 @@ private:
   uint16_t WriteI2CReg(int regnr, int value);
 
   GPIO *RDY;
+  void EnableRdy();
   int ep;
   int ep_f;
   struct epoll_event ev, events;
@@ -74,8 +76,7 @@ public:
   void WriteHiThreshReg(int value);
   
   void Reset();
-  void EnableRdy();
-
+  
   void TriggerOneShotConversion(int AIN);
   int  ReadConversionResult();
   int  ConvertWait(int AIN);

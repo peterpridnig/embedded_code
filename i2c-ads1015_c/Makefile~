@@ -5,14 +5,15 @@
 # make CPP=arm-buildroot-linux-gnueabihf-g++
 
 LOCAL_CFLAGS ?= -Wall -g
-LDLIBS=-lrt GPIO.cpp
-PROGRAM = i2c-accelerometer
+LDLIBS=-lrt GPIO.cpp -I. ads1015.cpp
+PROGRAM = i2c-ads1015
 
 $(PROGRAM): $(PROGRAM).cpp
 	$(CPP) $(CFLAGS) $(LOCAL_CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
 install : $(PROGRAM)
 	scp $(PROGRAM) root@10.0.0.117:/root
+	cp $(PROGRAM) $(USERLAND)/code/bin
 
 clean:
 	rm -f $(PROGRAM)

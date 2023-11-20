@@ -6,7 +6,7 @@
 
 LOCAL_CFLAGS ?= -Wall -g
 LDLIBS=-lrt GPIO.cpp -I. ads1015.cpp
-PROGRAM = i2c-accelerometer
+PROGRAM = i2c-ads1015
 
 $(PROGRAM): $(PROGRAM).cpp
 	$(CPP) $(CFLAGS) $(LOCAL_CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
