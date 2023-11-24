@@ -5,7 +5,7 @@
 
 if [[ $# -eq 0 ]] ; then
     echo Usage
-    echo 'led_blink RS|ENABLE|D4|D5|D6|D7'
+    echo 'test-display RS|ENABLE|D4|D5|D6|D7'
     echo
     exit 1
 fi

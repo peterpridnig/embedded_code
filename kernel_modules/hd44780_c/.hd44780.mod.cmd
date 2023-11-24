@@ -1,0 +1,1 @@
+cmd_/home/peter/mastering_beaglebone/userland/code/kernel_modules/hd44780_c/hd44780.mod := { echo  /home/peter/mastering_beaglebone/userland/code/kernel_modules/hd44780_c/hd44780.o;  echo; } > /home/peter/mastering_beaglebone/userland/code/kernel_modules/hd44780_c/hd44780.mod
