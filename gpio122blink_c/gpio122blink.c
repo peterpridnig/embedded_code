@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <linux/types.h>
+#include <stdlib.h>
 
 int main( int argc, char **argv, char **envp )
 {

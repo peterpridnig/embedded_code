@@ -48,6 +48,106 @@ http://www.sprut.de/electronic/lcd/    !!!!!
 https://www.mikrocontroller.net/articles/AVR-Tutorial:_LCD
 */
 
+
+enum DisplayCommands
+{
+  clear,
+  position,
+  scroll_left,
+  scroll_right,
+  none,
+  ERROR
+};
+
+typedef enum DisplayCommands tDisplayCommand;
+
+static int myatoi(char* Num)
+{
+   int i, number, exp;
+   number=0;
+   exp=1;
+ 
+   for (i=strlen(Num)-1; i>=0; i--)
+     { number+=exp*(Num[i]-48);
+       exp*=10;
+     };
+
+   return number;
+}
+
+// parse string c from to max until del and copy to target
+static void ParseUntilDel(char* c, char* target, int from, int max, char del)
+{
+  char* t;
+  int i;
+  i=0;
+  
+  t=&c[from];
+  while (*t!='\0' && (*t != del) && i<max ) {i++; t++;};
+  strncpy(target, &c[from], i);
+  target[i]='\0';
+};
+
+static tDisplayCommand ParseCommand(char* c, int* i, int* line, int* col)
+{
+  char sClear[]="<clr>";
+  char sPos[]  ="<pos "; //line,col>
+  char sScr[]  ="<scr "; //left|right>
+    
+  char temp[7];
+  //char* t, l;
+  int lenline, lencol;
+
+  printk("my cmd: %s %d\n",c,strlen(c));
+  
+  *i=0; *line=-1, *col=-1;
+ 
+  if ( strlen(c)>=5 ) { strncpy(temp, c, 5); } else { return none; };
+  temp[5]='\0';
+  
+  printk("temp1: %s %d\n",temp,strlen(temp));
+  
+  if ( strcmp(temp,sClear)==0) //clr
+    { printk("found clear\n");
+      return clear; }
+
+  if ( strcmp(temp,sPos)==0) //pos
+    { ParseUntilDel(c, temp, 5, 5, ',');
+      lenline=strlen(temp)+1;
+      if (lenline>2) goto error;
+      *line=myatoi(temp);
+      
+      ParseUntilDel(c, temp, 5+lenline, 5, '>');
+      lencol=strlen(temp)+1;
+      if (lencol>3) goto error;
+      *col=myatoi(temp);
+      
+      *i=5+lenline+lencol; // here the text starts
+
+      return position;
+    }
+
+   if ( strcmp(temp,sScr)==0) //scr
+    {  ParseUntilDel(c, temp, 5, 6, '>');
+      temp[strlen(temp)]='\0';
+      printk("temp2=%s %d\n",temp,strlen(temp));
+      if (strcmp(temp,"left")==0)
+	{ return scroll_left; };
+
+      if (strcmp(temp,"right")==0)
+	{ return scroll_right; };
+
+      goto error;
+
+    }
+   
+  return none;
+
+ error: return ERROR;
+  
+};
+
+
 static void NibbleWrite( int reg, int value )
 {
 	gpio_set_value(119,reg);
@@ -188,15 +288,63 @@ static ssize_t driver_write(struct file *instanz,const char __user *user,
 	unsigned long not_copied, to_copy;
 	int i;
 
+	int line=0;
+	int col=0;
+	int textindex=0;
+	
+	tDisplayCommand Command;
+	
+	/*
         char myCmdClear[] ="<clear>"; // "...<clear>..."
 	char myCmdSetPos[]="<setpos"; // "<setpos Y,X>TEXT"; Y=0..3; X=0..19
-
-	char* p;
+	*/
+	//char* p;
 	
 	to_copy = min( count, sizeof(textbuffer) );
 	not_copied=copy_from_user(textbuffer, user, to_copy);
+	
+	Command = ParseCommand(textbuffer, &textindex, &line, &col);
 	//printk("driver_write( %s )\n", textbuffer );
 
+ if ( Command==clear )//clear
+   {
+     LcdWrite( 0, 0x01 );
+     printk("Command: clear\n");
+     return to_copy-not_copied;
+   };
+
+ if ( Command==position )//position
+   {
+     printk("Command: position\n");
+     printk("line=%d col=%d\n",line,col);
+     //printk("Text to display: %s\n", &myDisplayText[textindex]);
+ 
+   };
+ 
+  if ( Command==scroll_left )
+   {
+     printk("Command: scroll left\n");
+    };
+
+  if ( Command==scroll_right )
+   {
+     printk("Command: scroll right\n");
+    };
+ 
+ if ( Command==none )//none
+   {
+     printk("none\n");
+     //printk("Text to display: %s\n", &myDisplayText[textindex]);
+   };
+
+ if ( Command==ERROR )//error
+   {
+     printk("ERROR\n");
+     return to_copy-not_copied;
+   };
+
+
+	/*
 	p = strstr(textbuffer, myCmdSetPos); //setpos
 	if (p) {
 	  LcdWrite( 0, (1<<7)+64 +5); //lin2,col5
@@ -211,20 +359,23 @@ static ssize_t driver_write(struct file *instanz,const char __user *user,
 	  LcdWrite( 0, 0x01 );
 	} else	   //no command, write from the beginning
 	  {
+	*/
 	    LcdWrite( 0, (1<<7) ); //line0
-	    for (i=0; i<to_copy && textbuffer[i]; i++) {
-	      if (isprint(textbuffer[i]))
-		LcdWrite( 1, textbuffer[i] );
-	      if (i==20) //line1
+	    for (i=textindex; i<to_copy && textbuffer[i]; i++) {
+	     
+	      if (i-textindex==20) //line1
 		LcdWrite( 0, (1<<7)+64 );
-	      if (i==40) //line2
+	      if (i-textindex==40) //line2
 		LcdWrite( 0, (1<<7)+20 );
-	      if (i==60) //line3
+	      if (i-textindex==60) //line3
 		LcdWrite( 0, (1<<7)+84 );
-	    }
+	      
+	       if (isprint(textbuffer[i]))
+		LcdWrite( 1, textbuffer[i] );
 	  }
 	
 	return to_copy-not_copied;
+	
 }
 
 static struct file_operations fops = {

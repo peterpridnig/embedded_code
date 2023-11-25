@@ -10,9 +10,15 @@ PROGRAM = display
 $(PROGRAM): $(PROGRAM).cpp
 	$(CPP) $(CFLAGS) $(LOCAL_CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
+parse: parse.cpp
+	g++ parse.cpp -o parse 
+
+
 install : $(PROGRAM)
 	scp $(PROGRAM) root@10.0.0.117:/root
 
 clean:
 	rm -f $(PROGRAM)
+	rm -f parse
+	rm *~
 

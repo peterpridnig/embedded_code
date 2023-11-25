@@ -11,7 +11,7 @@ if [[ $# -eq 0 ]] ; then
 fi
 
 case "$1" in
-    clear) TEXT='<clear>'
+    clear) TEXT='<clr>'
 	 ;;
     message) TEXT=$2
 	   ;;
