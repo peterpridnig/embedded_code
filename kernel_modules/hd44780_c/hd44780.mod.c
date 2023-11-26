@@ -33,7 +33,6 @@ __used __section("__versions") = {
 	{ 0x3ef03cbe, "device_destroy" },
 	{ 0x6091b333, "unregister_chrdev_region" },
 	{ 0xcf1eada9, "kobject_put" },
-	{ 0xf9a482f9, "msleep" },
 	{ 0xe867bd1f, "_dev_info" },
 	{ 0x1f95bd7d, "device_create" },
 	{ 0x5b3a92a7, "__class_create" },
@@ -42,24 +41,25 @@ __used __section("__versions") = {
 	{ 0x3fd78f3b, "register_chrdev_region" },
 	{ 0x11089ac7, "_ctype" },
 	{ 0x5f754e5a, "memset" },
-	{ 0xe2d5255a, "strcmp" },
+	{ 0xf9a482f9, "msleep" },
 	{ 0xae353d77, "arm_copy_from_user" },
+	{ 0xe2d5255a, "strcmp" },
+	{ 0x328a05f1, "strncpy" },
+	{ 0x97255bdf, "strlen" },
+	{ 0x8e865d3c, "arm_delay_ops" },
+	{ 0x34d22939, "gpiod_set_raw_value" },
+	{ 0xefd6cf06, "__aeabi_unwind_cpp_pr0" },
 	{ 0x8f678b07, "__stack_chk_guard" },
 	{ 0x3ea1b6e4, "__stack_chk_fail" },
 	{ 0xfe990052, "gpio_free" },
 	{ 0xbbcd67e2, "gpiod_direction_output_raw" },
+	{ 0xc65e782c, "gpio_to_desc" },
 	{ 0x92997ed8, "_printk" },
 	{ 0x47229b5c, "gpio_request" },
 	{ 0xc358aaf8, "snprintf" },
-	{ 0x328a05f1, "strncpy" },
-	{ 0x8e865d3c, "arm_delay_ops" },
-	{ 0x34d22939, "gpiod_set_raw_value" },
-	{ 0xc65e782c, "gpio_to_desc" },
-	{ 0xefd6cf06, "__aeabi_unwind_cpp_pr0" },
-	{ 0x97255bdf, "strlen" },
 };
 
 MODULE_INFO(depends, "");
 
 
-MODULE_INFO(srcversion, "22B633BD8E089EFF0F2E987");
+MODULE_INFO(srcversion, "F60B483E0F25AC6E8259D84");

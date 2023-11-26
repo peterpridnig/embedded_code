@@ -8,7 +8,7 @@
 int main()
 {
   std::ofstream fs;
-  std::string mytext {"Peter Pridnig"};
+  std::string mytext {"peter Pridni"};
  
  fs.open("/dev/hd44780");
  if (!fs.is_open()) {

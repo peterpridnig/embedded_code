@@ -1,7 +1,7 @@
-#include <cstring>
 #include <string.h>
 #include <stdio.h>
 
+#define DEBUGPRINTF
 
 enum DisplayCommands
 {
@@ -15,8 +15,8 @@ enum DisplayCommands
 
 typedef enum DisplayCommands tDisplayCommand;
 
-int myatoi(char* Num)
- {
+static int myatoi(char* Num)
+{
    int i, number, exp;
    number=0;
    exp=1;
@@ -27,11 +27,10 @@ int myatoi(char* Num)
      };
 
    return number;
- }
-
+}
 
 // parse string c from to max until del and copy to target
-void ParseUntilDel(char* c, char* target, int from, int max, char del)
+static void ParseUntilDel(char* c, char* target, int from, int max, char del)
 {
   char* t;
   int i;
@@ -43,33 +42,47 @@ void ParseUntilDel(char* c, char* target, int from, int max, char del)
   target[i]='\0';
 };
 
-tDisplayCommand ParseCommand(char* c, int* i, int* line, int* col)
+static tDisplayCommand ParseCommand(char* c, int* i, int* line, int* col)
 {
-  char sClear[]="<clr>";
+  char sClear[]="<clr";  //>
   char sPos[]  ="<pos "; //line,col>
-  char sScrLeft[]  ="<scr left>";
-  char sScrRight[]  ="<scr right>";
+  char sScr[]  ="<scr "; //left|right>
     
-  char temp[6];
-  char* t, l;
+  char temp[7];
+  //char* t, l;
   int lenline, lencol;
+
+  #ifdef DEBUGPRINTF
+  printf("my cmd: %s len=%d\n",c,(int)strlen(c));
+  #endif
   
   *i=0; *line=-1, *col=-1;
  
-  if ( strlen(c)>=5 ) { strncpy(temp, c, 5); } else return none;
+  //if ( strlen(c)>=5 ) { strncpy(temp, c, 5); } else { return none; };
+  //temp[5]='\0';
+  ParseUntilDel(c, temp, 0, 5, '>');
+    
+  #ifdef DEBUGPRINTF
+  printf("temp1: %s len=%d\n",temp,(int)strlen(temp));
+  #endif
   
   if ( strcmp(temp,sClear)==0) //clr
-    { return clear; }
+    {
+      #ifdef DEBUGPRINTF
+      printf("found clear\n");
+      #endif
+      *i=5;
+      return clear; }
 
   if ( strcmp(temp,sPos)==0) //pos
     { ParseUntilDel(c, temp, 5, 5, ',');
       lenline=strlen(temp)+1;
-      if (lenline>2) goto error;
+      if (lenline>2) goto error; //no more than 1 char for the linenr
       *line=myatoi(temp);
       
       ParseUntilDel(c, temp, 5+lenline, 5, '>');
       lencol=strlen(temp)+1;
-      if (lencol>3) goto error;
+      if (lencol>3) goto error; //no more than 2 chars for the col
       *col=myatoi(temp);
       
       *i=5+lenline+lencol; // here the text starts
@@ -77,48 +90,60 @@ tDisplayCommand ParseCommand(char* c, int* i, int* line, int* col)
       return position;
     }
 
-  if ( strcmp(temp,sScrLeft)==0) //scr left
-    {  return scroll_left; }
+   if ( strcmp(temp,sScr)==0) //scr
+    {  ParseUntilDel(c, temp, 5, 6, '>');
+      //temp[strlen(temp)]='\0';
+      
+      #ifdef DEBUGPRINTF
+      printf("temp2=%s len=%d\n",temp,(int)strlen(temp));
+      #endif
+      
+      if (strcmp(temp,"left")==0)
+	{ return scroll_left; };
 
-  if ( strcmp(temp,sScrRight)==0) //scr right
-    {  return scroll_right; }
- 
+      if (strcmp(temp,"right")==0)
+	{ return scroll_right; };
+
+      goto error;
+
+    }
+   
   return none;
 
  error: return ERROR;
   
 };
 
-
   
 int main()
 {
-
- //char myDisplayText[]="<clr>";
+ //char myDisplayText[]="<clr>Peter";
  char myDisplayText[]="<pos 2,12>Peter Pridnig";
+ //char myDisplayText[]="<scr left>";
  //char myDisplayText[]="<scr right>";
  //char myDisplayText[]="Seltschach";
+
  /* grammar
-    !<clr>IGNOREDTEXT
-    !<pos line,col>TEXT
-    !<scr left|right>IGNOREDTEXT
-    TEXT
+    <clr>DISPLAYTEXT            |
+    <pos line,col>DISPLAYTEXT   |
+    <scr left|right>IGNOREDTEXT |
+    DISPLAYTEXT
  */
 
  int line=0;
  int col=0;
- int left=0;
  int textindex=0;
 
- char Num[]="123";
- 
- printf("Command Text: %s\n",myDisplayText);
- 
+ printf("Parser Start:\n");
+   
  tDisplayCommand Command = ParseCommand(myDisplayText, &textindex, &line, &col);
+
+ printf("Parser Result:\n");
  
  if ( Command==clear )//clear
    {
      printf("Command: clear\n");
+     printf("Text to display: %s\n", &myDisplayText[textindex]);
    };
 
  if ( Command==position )//position
@@ -126,8 +151,7 @@ int main()
      printf("Command: position\n");
      printf("line=%d col=%d\n",line,col);
      printf("Text to display: %s\n", &myDisplayText[textindex]);
- 
-   };
+    };
  
   if ( Command==scroll_left )
    {
