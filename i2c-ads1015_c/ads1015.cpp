@@ -196,8 +196,7 @@ void ADS1015::EnableRdy()
 	
 	n = read(ep_f, &value, sizeof(value));
 	if (n > 0) {
-		printf("Initial value value=%c\n",
-		       value[0]);
+	  //printf("Initial value value=%c\n", value[0]);
 		lseek(ep_f, 0, SEEK_SET);
 	}
 	

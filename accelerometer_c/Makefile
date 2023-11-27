@@ -4,21 +4,17 @@
 # make CC=arm-linux-gnueabihf-gcc
 
 LOCAL_CFLAGS ?= -Wall -g
-LDLIBS=-lrt
-PROGRAM = display
+LDLIBS=-lrt GPIO.cpp -I. ads1015.cpp
+PROGRAM = accelerometer
 
 $(PROGRAM): $(PROGRAM).cpp
 	$(CPP) $(CFLAGS) $(LOCAL_CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
-parse: parse.cpp
-	g++ parse.cpp -o parse 
-
-
 install : $(PROGRAM)
 	scp $(PROGRAM) root@10.0.0.117:/root
+	cp $(PROGRAM) ../bin
 
 clean:
 	rm -f $(PROGRAM)
-	rm -f parse
 	rm *~
 

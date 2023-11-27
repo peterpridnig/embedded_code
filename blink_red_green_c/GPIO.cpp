@@ -91,13 +91,13 @@ int GPIO::write(string path, string filename, int value){
    return this->write(path,filename,s.str());
 }
 
-//int GPIO::exportGPIO(){
-//   return this->write(GPIO_PATH, "export", this->number);
-//}
+int GPIO::exportGPIO(){
+   return this->write(GPIO_PATH, "export", this->number);
+}
 
-//int GPIO::unexportGPIO(){
-//   return this->write(GPIO_PATH, "unexport", this->number);
-//}
+int GPIO::unexportGPIO(){
+   return this->write(GPIO_PATH, "unexport", this->number);
+}
 
 int GPIO::setDirection(GPIO_DIRECTION dir){
    switch(dir){

@@ -47,6 +47,10 @@ public:
 	GPIO(int number); //constructor will export the pin
 	virtual int getNumber() { return number; }
 
+	// not called inside constructor and destuctor
+	int exportGPIO();
+	int unexportGPIO();
+
 	// General Input and Output Settings
 	virtual int setDirection(GPIO_DIRECTION);
 	virtual GPIO_DIRECTION getDirection();
@@ -81,8 +85,6 @@ private:
 	int write(string path, string filename, string value);
 	int write(string path, string filename, int value);
 	string read(string path, string filename);
-//	int exportGPIO();
-//	int unexportGPIO();
 	ofstream stream;
 	pthread_t thread;
 	CallbackType callbackFunction;
