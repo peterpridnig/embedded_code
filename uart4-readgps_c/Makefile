@@ -4,14 +4,16 @@
 # make CC=arm-linux-gnueabihf-gcc
 
 LOCAL_CFLAGS ?= -Wall -g
-PROGRAM = uart-read
+PROGRAM = uart4-readgps
 
 $(PROGRAM): $(PROGRAM).c
 	$(CC) $(CFLAGS) $(LOCAL_CFLAGS) $(LDFLAGS) $^ -o $@
 
 install : $(PROGRAM)
-	cp $(PROGRAM) ../../rootfs_nfs/root/$(PROGRAM)
-	chmod 760 ../../rootfs_nfs/root/$(PROGRAM)
+	#cp $(PROGRAM) ../../rootfs_nfs/root/$(PROGRAM)
+	#chmod 760 ../../rootfs_nfs/root/$(PROGRAM)
+	scp $(PROGRAM) root@10.0.0.117:/root
+	cp $(PROGRAM) $(USERLAND)/code/bin
 
 clean:
 	rm -f $(PROGRAM)

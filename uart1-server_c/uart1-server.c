@@ -4,12 +4,15 @@
 #include<termios.h>
 #include<string.h>
 #include<stdlib.h>
+#define  GPIO_NR   "122"
 #define  LED_PATH  "/sys/class/gpio/gpio122/"
 
 // echo 122 > /sys/class/gpio/export
 // echo out > /sys/class/gpio/gpio122/direction
 // echo 1 > /sys/class/gpio/gpio122/value
 // echo 122 > /sys/class/gpio/unexport
+
+void DisplayHelp(int client);
 
 // Sends a message to the client and displays the message on the console
 int message(int client, char *message){
@@ -19,8 +22,22 @@ int message(int client, char *message){
       perror("Error: Failed to write to the client\n");
       return -1;
    }
-   write(client, "\n\rEBB>", 7);           // display a simple prompt
+   write(client, "\nEBB>", 6);           // display a simple prompt
    return 0;                               // \r for a carriage return
+}
+
+void exportLED(){
+   FILE* fp;   // create a file pointer fp
+   fp = fopen("/sys/class/gpio/export","w"); // open file for writing
+   fprintf(fp, "%s", GPIO_NR);  // send the value to the file
+   fclose(fp);  // close the file using the file pointer
+}
+
+void unexportLED(){
+   FILE* fp;   // create a file pointer fp
+   fp = fopen("/sys/class/gpio/unexport","w"); // open file for writing
+   fprintf(fp, "%s", GPIO_NR);  // send the value to the file
+   fclose(fp);  // close the file using the file pointer
 }
 
 void makeLED(char filename[], char value[]){
@@ -43,6 +60,15 @@ int processCommand(int client, char *command){
       val = message(client, "\r[Turning the LED off]");
       makeLED("value", "0");        // turn the physical LED off
    }
+   else if(strcmp(command, "help")==0){
+      val = message(client, "\r[Display help]");
+      DisplayHelp(client);
+   }
+  else if(strcmp(command, "acc")==0){
+      val = message(client, "\r[accelerometer]");
+      system("insmod hd44780.ko && ./accelerometer &");
+  }
+ 
    else if(strcmp(command, "quit")==0){    // shutting down server!
       val = message(client, "\r[goodbye]");
    }
@@ -50,10 +76,17 @@ int processCommand(int client, char *command){
    return val;
 }
 
+void DisplayHelp(int client) {
+  message(client, "\n usage: \n help \n LED on \n LED off \n quit");
+}
+
 int main(int argc, char *argv[]){
    int client, count=0;
    unsigned char c;
    char *command = malloc(255);
+   printf("export led\n");
+   exportLED();
+   printf("make led\n");
    makeLED("direction", "out");            // the LED is an output
 
    if ((client = open("/dev/ttyS1", O_RDWR | O_NOCTTY | O_NDELAY))<0){
@@ -71,6 +104,7 @@ int main(int argc, char *argv[]){
       perror("UART: Failed to start server.\n");
       return -1;
    }
+   DisplayHelp(client);
 
    // Loop forever until the quit command is sent from the client or
    //  Ctrl-C is pressed in the server's terminal window
@@ -90,5 +124,6 @@ int main(int argc, char *argv[]){
    }
    while(strcmp(command,"quit")!=0);
    close(client);
+   unexportLED();
    return 0;
 }
