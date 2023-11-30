@@ -22,7 +22,7 @@ int message(int client, char *message){
       perror("Error: Failed to write to the client\n");
       return -1;
    }
-   write(client, "\nEBB>", 6);           // display a simple prompt
+   write(client, "\rEBB>", 5);           // display a simple prompt
    return 0;                               // \r for a carriage return
 }
 
@@ -65,7 +65,7 @@ int processCommand(int client, char *command){
       DisplayHelp(client);
    }
   else if(strcmp(command, "acc")==0){
-      val = message(client, "\r[accelerometer]");
+      val = message(client, "\r[Starting accelerometer]");
       system("insmod hd44780.ko && ./accelerometer &");
   }
  
@@ -77,7 +77,7 @@ int processCommand(int client, char *command){
 }
 
 void DisplayHelp(int client) {
-  message(client, "\n usage: \n help \n LED on \n LED off \n quit");
+  message(client, "\r commands: \r   help \r   LED on \r   acc \r   LED off \r   quit");
 }
 
 int main(int argc, char *argv[]){

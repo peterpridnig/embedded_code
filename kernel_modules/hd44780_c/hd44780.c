@@ -91,6 +91,13 @@ void ParseUntilDel(char* c, char* target, int from, int max, char del)
   target[i]='\0';
 };
 
+/* grammar
+    <clr>DISPLAYTEXT            |
+    <pos line,col>DISPLAYTEXT   |
+    <scr left|right>IGNOREDTEXT |
+    DISPLAYTEXT
+ */
+
 tDisplayCommand ParseCommand(char* c, int* i, int* line, int* col)
 {
   char sClear[]="<clr";  //>

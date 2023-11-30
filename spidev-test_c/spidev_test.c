@@ -29,7 +29,7 @@ static void pabort(const char *s)
 	abort();
 }
 
-static const char *device = "/dev/spidev1.0";
+static const char *device = "/dev/spidev0.0";
 static uint8_t mode;
 static uint8_t bits = 8;
 static uint32_t speed = 500000;
@@ -159,6 +159,8 @@ int main(int argc, char *argv[])
 	int ret = 0;
 	int fd;
 
+	printf("Starting spidev_test\n");
+	
 	parse_opts(argc, argv);
 
 	fd = open(device, O_RDWR);
@@ -206,5 +208,7 @@ int main(int argc, char *argv[])
 
 	close(fd);
 
+	printf("Stopping spidev_test\n");
+	
 	return ret;
 }
