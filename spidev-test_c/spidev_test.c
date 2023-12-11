@@ -11,6 +11,8 @@
  * Cross-compile with cross-gcc -I/path/to/cross-kernel/include
  */
 
+// ./spidev_test -D /dev/spidev1.0
+
 #include <stdint.h>
 #include <unistd.h>
 #include <stdio.h>
