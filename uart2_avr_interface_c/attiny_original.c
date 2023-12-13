@@ -16,7 +16,7 @@ int main(int argc, char *argv[]){
    char message[]="Peter Pridnig";
    unsigned char c;
 	
-   if ((client = open("/dev/ttyS1", O_RDWR | O_NOCTTY | O_NDELAY))<0){
+   if ((client = open("/dev/ttyS2", O_RDWR | O_NOCTTY | O_NDELAY))<0){
       perror("UART: Failed to open the file.\n");
       return -1;
    }
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]){
    //char *val="0X90";
    write(client,&val,1);
 
-   //microcom -s 115200 /dev/ttyS1
+   //microcom -s 115200 /dev/ttyS2
 
    do {
      if(read(client,&c,1)>0){

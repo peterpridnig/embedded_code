@@ -19,21 +19,6 @@ ctrl_c() {
 }
 
 # RST
-# Header: P8
-# Pin:    #40
-# BB_Pinmux.ods:
-# => P8_40 / Addr 0x0BC
-#
-# cat /sys/kernel/debug/pinctrl/44e10800.pinmux-pinctrl-single/pins | grep 44e108bc
-# => pin 47 (PIN47) 13:gpio-32-63 44e108bc 0000002f pinctrl-single
-# i.e. PIN47
-#
-# cat /sys/kernel/debug/pinctrl/44e10800.pinmux-pinctrl-single/gpio-ranges | grep gpio-32-63
-# => 0: gpio-32-63 GPIOS [32 - 49] PINS [34 - 51]
-# i.e. GPIO45
-
-
-# RST
 # Header: P9
 # Pin:    #23
 # BB_Pinmux.ods:
