@@ -65,18 +65,16 @@ enum eStatus {
   PASS,
   FAIL };
 
-//enum season { spring, summer, autumn, winter };
-  
+
 class cResult {
 
 public:
   cResult() {
-    Status=IDLE;
+    status=IDLE;
     result=0;
-    nriter=0.0;
+    nriter=-1;
   };
-  void Reset() {this->Status=IDLE; this->result=0; this->nriter=0; }
-  enum eStatus Status;
+  enum eStatus status;
   uint8_t result;
   int nriter;
 };
@@ -90,46 +88,27 @@ private:
   int STATUS {0};
   pthread_t thread;
   friend void* threadedRead(void *value);
-  cResult* Write_Read(int);
+  void Interact(uint8_t, cResult*);
 
 public:
   AVRInterface(string);
   ~AVRInterface();
   int GetStatus() {return STATUS; } //>0 means OK
   void ApplyResetPulse();
-  cResult* RequestLifeSign();
-  cResult* ReadOscCal();
+  void RequestLifeSign();
+  void ReadOscCal();
   void UnexportRST();
 
 };
 
 
 
-void* threadedRead(void *value) {
-  uint8_t *x=new(uint8_t);
-  *x=0;
-  
-  AVRInterface* p = static_cast<AVRInterface*>(value);
-
-  int i=0;
-  while (i++ < MAX_LOOP) {
-    if (read(p->client,x,1) >0 ) break;
-    usleep(100);
-  }
-
-  cResult *pResult = new (cResult);
-  pResult->result=*x;
-  pResult->nriter=i;
-  
-  return pResult;
-
-}
 
 AVRInterface::AVRInterface(string tty_device) {
   this->STATUS=1;
- 
-  RST=new GPIO(stoi(RST_PIN)); // rst pin
-  
+
+  // reset pin
+  RST=new GPIO(stoi(RST_PIN));
   if (RST) { 
     if ( !RST->IsExportedGPIO() ) {
       RST->exportGPIO();
@@ -137,12 +116,13 @@ AVRInterface::AVRInterface(string tty_device) {
 
   } else { this->STATUS=-1; }
 
+  // tty device
   char* dev_name = new char[tty_device.length()+1];
   strcpy(dev_name, tty_device.c_str());
   
   if ((client = open(dev_name, O_RDWR | O_NOCTTY | O_NDELAY))<0){
     perror("UART: Failed to open the file.\n");
-    this->STATUS=-2;
+    this->STATUS=-3;
   }
   else
     { // man termios
@@ -171,7 +151,7 @@ void AVRInterface::ApplyResetPulse() {
  
   if (RST) {
     RST->setValue(LOW);
-    usleep(100000); // 100ms rst pulse duratin
+    usleep(100000); // 100ms rst pulse duration
     RST->setValue(HIGH);
     usleep(100000); // 100ms waiting time for "hi"
     tcflush(client, TCIFLUSH); // flush "hi"
@@ -180,8 +160,38 @@ void AVRInterface::ApplyResetPulse() {
 }
 
 
+void* threadedRead(void *myobj) {
+  uint8_t *x=new(uint8_t);
+  *x=0;
+  
+  AVRInterface* p = static_cast<AVRInterface*>(myobj);
+  cResult *pResult = new (cResult);
+  if (pResult) {
+    pResult->status=RUNNING;
+			    
+    int i=0;
+    while (i++ < MAX_LOOP) {
+      if (read(p->client,x,1) >0 ) break;
+      usleep(100);
+    }
 
-cResult* AVRInterface::Write_Read(int writeval) {
+    if (i<MAX_LOOP) {
+      pResult->status=PASS;
+      pResult->result=*x;
+      pResult->nriter=i;
+    } else{
+      pResult->status=FAIL;
+      pResult->result=0;
+      pResult->nriter=i;
+    }
+  
+    return pResult;
+  } else return nullptr;
+  
+}
+
+
+void AVRInterface::Interact(uint8_t cmd, cResult* result) { //write cmd; read result
   this->STATUS=1;
  
   if (pthread_create(&this->thread, NULL, &threadedRead,  static_cast<void*>(this) )) {
@@ -189,22 +199,47 @@ cResult* AVRInterface::Write_Read(int writeval) {
     STATUS=-1;
   }
 
-  //int writeval=1; 
-  write(this->client,&writeval,1);
+  write(this->client,&cmd,1);
   usleep(100); 
   
-  void *v;
+  void *v {nullptr};
   pthread_join(this->thread, &v);
-  cResult *r=(cResult *)v;
-  return r;
+  if (v) { result=(cResult *)v; } else this->STATUS=-1;
+
 }
 
-cResult* AVRInterface::RequestLifeSign() {
-  return this->Write_Read(1);
+void AVRInterface::RequestLifeSign() {
+  cResult* result {nullptr};
+  
+  this->Interact(1, result);
+  cout << "Request LifeSign ";
+  
+  if (result) {
+    if (result->status==PASS) 
+      cout << "PASS (" << result->result << " after "<< result->nriter << " Iterations)";
+    else
+      cout << "FAIL (" << result->result << " after "<< result->nriter << " Iterations)";
+    delete result;
+  } else cout << "FAIL (no result)";
+
+  cout << endl;
 }
 
-cResult* AVRInterface::ReadOscCal() {
-  return this->Write_Read(251);
+void AVRInterface::ReadOscCal() {
+  cResult* result {nullptr};
+  
+  this->Interact(251, result);
+  cout << "Read OscCal ";
+  
+  if (result) {
+    if (result->status==PASS) 
+      cout << "PASS (" << result->result << "after "<< result->nriter << " Iterations)";
+    else
+      cout << "FAIL (" << result->result << "after "<< result->nriter << " Iterations)";
+    delete result;
+  } else cout << "FAIL (no result)";
+
+  cout << endl;
 }
 
 void AVRInterface::UnexportRST() {
@@ -379,19 +414,12 @@ int main(int argc, char *argv[])
   AVRInterface *pAVI = new AVRInterface(mySeq.tty_device);
   AVISTATUS; AVILOG("done\n");
 
-  cResult* result;
-  
   if (mySeq.reset) {
     AVILOG("Apply Reset Pulse..."); pAVI->ApplyResetPulse(); AVISTATUS; AVILOG("done\n");
   }
 
   if (mySeq.lifesign) {
-    AVILOG("Request Lifesign...");
-    result=pAVI->RequestLifeSign();
-    AVISTATUS;
-    cout << "Response="<< (int)(result->result) << " Nr of interations=" << result->nriter << endl;
-    delete result;
-    AVILOG("done\n");
+    AVILOG("Request Lifesign..."); pAVI->RequestLifeSign(); AVISTATUS; AVILOG("done\n");
   }
   
   if (mySeq.cleanup) {
