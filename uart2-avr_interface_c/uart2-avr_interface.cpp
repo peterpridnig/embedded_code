@@ -59,13 +59,24 @@ void print_usage(const string prog)
   exit(1);
 }
 
+enum eStatus {
+  IDLE,
+  RUNNING,
+  PASS,
+  FAIL };
+
+//enum season { spring, summer, autumn, winter };
+  
 class cResult {
 
 public:
   cResult() {
+    Status=IDLE;
     result=0;
     nriter=0.0;
   };
+  void Reset() {this->Status=IDLE; this->result=0; this->nriter=0; }
+  enum eStatus Status;
   uint8_t result;
   int nriter;
 };
