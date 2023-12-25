@@ -50,12 +50,13 @@ using namespace std;
 void print_usage(const string prog)
 {
   cout << "Usage:" << prog << " [-vhDr]\n" << endl;
-  cout << "  -v --verbose" << endl;
-  cout << "  -h --help     display usage" << endl;
-  cout << "  -D --device   device to use (default " << TTY_DEVICE << ")" << endl;
-  cout << "  -r --reset    apply reset pulse" << endl;
-  cout << "  -l --lifesign request lifesign" << endl;
-  cout << "  -c --cleanup  unexport RST pin" << endl;  
+  cout << "  -v --verbose     be wordy " << endl;
+  cout << "  -h --help        display usage" << endl;
+  cout << "  -D --device      device to use (default " << TTY_DEVICE << ")" << endl;
+  cout << "  -r --reset       apply reset pulse" << endl;
+  cout << "  -l --lifesign    request lifesign" << endl;
+  cout << "  -o --osccalread  read osccal value" << endl;
+  cout << "  -c --cleanup     unexport RST pin" << endl;  
   exit(1);
 }
 
@@ -82,21 +83,22 @@ public:
 
 class AVRInterface {
 private:
+  bool verbose {true};
   GPIO *RST {nullptr};    // RST pin
   int client {0};         // client filedescriptor
   struct termios options;
   int STATUS {0};
   pthread_t thread;
   friend void* threadedRead(void *value);
-  void Interact(uint8_t, cResult*);
+  void Interact(uint8_t, uint8_t*);
 
 public:
-  AVRInterface(string);
+  AVRInterface(string,bool);
   ~AVRInterface();
   int GetStatus() {return STATUS; } //>0 means OK
   void ApplyResetPulse();
   void RequestLifeSign();
-  void ReadOscCal();
+  void OscCalRead();
   void UnexportRST();
 
 };
@@ -104,8 +106,9 @@ public:
 
 
 
-AVRInterface::AVRInterface(string tty_device) {
+AVRInterface::AVRInterface(string tty_device, bool verbose=false) {
   this->STATUS=1;
+  this->verbose=verbose;
 
   // reset pin
   RST=new GPIO(stoi(RST_PIN));
@@ -147,8 +150,7 @@ AVRInterface::~AVRInterface() {
 }
 
 void AVRInterface::ApplyResetPulse() {
-  this->STATUS=1;
- 
+
   if (RST) {
     RST->setValue(LOW);
     usleep(100000); // 100ms rst pulse duration
@@ -179,20 +181,21 @@ void* threadedRead(void *myobj) {
       pResult->status=PASS;
       pResult->result=*x;
       pResult->nriter=i;
+      //cout << "threaded read=" << pResult->result<< pResult->nriter;
     } else{
       pResult->status=FAIL;
       pResult->result=0;
       pResult->nriter=i;
     }
-  
     return pResult;
+    
   } else return nullptr;
   
 }
 
 
-void AVRInterface::Interact(uint8_t cmd, cResult* result) { //write cmd; read result
-  this->STATUS=1;
+void AVRInterface::Interact(uint8_t cmd, uint8_t* result) { //write cmd; read result
+  *result=0;
  
   if (pthread_create(&this->thread, NULL, &threadedRead,  static_cast<void*>(this) )) {
     perror("GPIO: Failed to create the read thread");
@@ -204,46 +207,57 @@ void AVRInterface::Interact(uint8_t cmd, cResult* result) { //write cmd; read re
   
   void *v {nullptr};
   pthread_join(this->thread, &v);
-  if (v) { result=(cResult *)v; } else this->STATUS=-1;
+
+  if (v) {
+    cResult* myresult=(cResult *)v;
+    *result=myresult->result;
+    if (this->verbose) {
+      if (myresult->status==PASS) 
+	cout << "Read is PASS (response " << (int)myresult->result << " after "<< myresult->nriter << " Iterations)" << endl;
+      else {
+	cout << "Read is FAIL (response " << (int)myresult->result << " after "<< myresult->nriter << " Iterations)" << endl;
+	this->STATUS=-1;
+      }
+    }
+    delete myresult;
+    
+  }
+  else {
+    if (this->verbose) cout << "Read is FAIL (no result)" << endl;
+    this->STATUS=-1;
+  }
 
 }
 
 void AVRInterface::RequestLifeSign() {
-  cResult* result {nullptr};
-  
-  this->Interact(1, result);
-  cout << "Request LifeSign ";
-  
-  if (result) {
-    if (result->status==PASS) 
-      cout << "PASS (" << result->result << " after "<< result->nriter << " Iterations)";
-    else
-      cout << "FAIL (" << result->result << " after "<< result->nriter << " Iterations)";
-    delete result;
-  } else cout << "FAIL (no result)";
+  uint8_t result {0};
 
-  cout << endl;
+  cout << "Request LifeSign";
+  
+  this->Interact(1, &result);
+  if (this->STATUS>0) 
+    cout << " PASS (response=" << (int)result << ")" << endl;
+  else
+    cout << " FAIL" << endl;
+
 }
 
-void AVRInterface::ReadOscCal() {
-  cResult* result {nullptr};
+void AVRInterface::OscCalRead() {
+  uint8_t result {0};
   
-  this->Interact(251, result);
-  cout << "Read OscCal ";
-  
-  if (result) {
-    if (result->status==PASS) 
-      cout << "PASS (" << result->result << "after "<< result->nriter << " Iterations)";
-    else
-      cout << "FAIL (" << result->result << "after "<< result->nriter << " Iterations)";
-    delete result;
-  } else cout << "FAIL (no result)";
+  cout << "OscCal Read";
 
-  cout << endl;
+  this->Interact(251, &result);
+  if (this->STATUS>0) 
+    cout << " PASS (response=" << (int)result << ")" << endl;
+  else
+    cout << " FAIL" << endl;
+
 }
+
 
 void AVRInterface::UnexportRST() {
-  this->STATUS=1;
+
   if (RST) {
     if (RST->IsExportedGPIO())
 	      RST->unexportGPIO(); else { this->STATUS=-1; }
@@ -343,6 +357,7 @@ int main(int argc, char *argv[])
     string tty_device;
     bool reset;
     bool lifesign;
+    bool osccalread;
     bool cleanup;
   };
  
@@ -351,6 +366,7 @@ int main(int argc, char *argv[])
     .tty_device=TTY_DEVICE,
     .reset=false,
     .lifesign=false,
+    .osccalread=false,
     //...
     .cleanup=false,
   };
@@ -361,41 +377,47 @@ int main(int argc, char *argv[])
       { "help",    0, 0, 'h' },
       { "device",  1, 0, 'D' }, // 1,0 = 1 optarg
       { "reset",   0, 0, 'r' }, // 0,0 = 0 optarg
-      { "lifesign",0, 0, 'l' },
-      { "cleanup", 0, 0, 'c' },      
-      { NULL, 0, 0, 0 },
+      { "lifesign",   0, 0, 'l' },
+      { "osccalread", 0, 0, 'l' },      
+      { "cleanup",    0, 0, 'c' },      
+      { NULL,         0, 0, 0 },
     };
     int c;
 
-    c = getopt_long(argc, argv, "vhrD:lc", lopts, NULL);
+    c = getopt_long(argc, argv, "vhrD:loc", lopts, NULL);
 
     if (c == -1)
       break;
 
     switch (c) {
     case 'v':
-      cout << "prepare option v" << endl;
+      cout << "option v" << endl;
       mySeq.verbose=true;
       break;
       
     case 'h':
-      cout << "proceed option h" << endl;
+      cout << "option h" << endl;
       print_usage(argv[0]);
       break;
       
     case 'D':
-      cout << "prepare option D, optarg = " << optarg << endl;
+      cout << "option D, optarg = " << optarg << endl;
       mySeq.tty_device=optarg;
       break;
       
     case 'r':
-      cout << "prepare option r" << endl;
+      cout << "option r" << endl;
       mySeq.reset=true;
       break;
       
     case 'l':
-      cout << "prepare option l" << endl;
+      cout << "option l" << endl;
       mySeq.lifesign=true;
+      break;
+
+     case 'o':
+      cout << "option o" << endl;
+      mySeq.osccalread=true;
       break;
       
     case 'c':
@@ -411,7 +433,7 @@ int main(int argc, char *argv[])
   }
 
   AVILOG("Initialize Object...");  
-  AVRInterface *pAVI = new AVRInterface(mySeq.tty_device);
+  AVRInterface *pAVI = new AVRInterface(mySeq.tty_device, mySeq.verbose);
   AVISTATUS; AVILOG("done\n");
 
   if (mySeq.reset) {
@@ -420,6 +442,10 @@ int main(int argc, char *argv[])
 
   if (mySeq.lifesign) {
     AVILOG("Request Lifesign..."); pAVI->RequestLifeSign(); AVISTATUS; AVILOG("done\n");
+  }
+  
+  if (mySeq.osccalread) {
+    AVILOG("OscCalRead..."); pAVI->OscCalRead(); AVISTATUS; AVILOG("done\n");
   }
   
   if (mySeq.cleanup) {
