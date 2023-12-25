@@ -6,6 +6,11 @@
 if [[ $# -eq 0 ]] ; then
     echo Usage
     echo 'display clear|text <text>|demo'
+    echo ' <text> grammar:'
+    echo '  <clr>DISPLAYTEXT            |'
+    echo '  <pos line,col>DISPLAYTEXT   |'
+    echo '  <scr left|right>IGNOREDTEXT |'
+    echo '  DISPLAYTEXT'
     echo
     exit 1
 fi

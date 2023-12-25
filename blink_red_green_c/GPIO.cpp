@@ -36,6 +36,7 @@
 #include<unistd.h>
 #include<sys/epoll.h>
 #include<pthread.h>
+#include<filesystem>
 using namespace std;
 
 namespace exploringBB {
@@ -92,11 +93,15 @@ int GPIO::write(string path, string filename, int value){
 }
 
 int GPIO::exportGPIO(){
-   return this->write(GPIO_PATH, "export", this->number);
+  return this->write(GPIO_PATH, "export", this->number);
 }
 
+int GPIO::IsExportedGPIO() {
+  return filesystem::exists(this->path); 
+}
+  
 int GPIO::unexportGPIO(){
-   return this->write(GPIO_PATH, "unexport", this->number);
+  return this->write(GPIO_PATH, "unexport", this->number);
 }
 
 int GPIO::setDirection(GPIO_DIRECTION dir){

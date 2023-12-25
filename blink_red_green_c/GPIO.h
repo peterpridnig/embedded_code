@@ -51,6 +51,8 @@ public:
 	int exportGPIO();
 	int unexportGPIO();
 
+	int IsExportedGPIO();
+
 	// General Input and Output Settings
 	virtual int setDirection(GPIO_DIRECTION);
 	virtual GPIO_DIRECTION getDirection();

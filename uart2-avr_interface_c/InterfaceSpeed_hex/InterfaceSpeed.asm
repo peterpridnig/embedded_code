@@ -25,36 +25,30 @@ Anfang:
 	sbi    portb,TXD
 	
 	rcall	AdcInit
-	rcall	ADCrd		;rjmp	OscKorr		;skip OsccalSet
+	rcall	ADCrd
+	rjmp	OscKorr		;skip OsccalSet
 	
 OsccalSet:
 	ldi	A,74		;default osccal, necessary for unfused device! smaller=> faster
 	out	osccal,A
-	rjmp    Hi
 
 OscKorr:
 	rcall  OscKorrektur	;compare osccal with EEPROM and ajdust if necessary
-Hi:	
-	ldi    A,72		;72=H
-	rcall  WrCoM
-	rcall  Hi0
-	ldi    A,105		;105=i
-	rcall  WrCoM
-	rcall  Hi0
 	rjmp   Schleife
-Hi0:	ldi    Delay,255
-Hi1:	dec    Delay
-	brne   Hi1
-	ret
 
 	sbi    ddrb,LED	
-
-Mirror:
+myLoop1:
 	rcall RdCOM		; MIRROR TEST
-	ldi   A,105
 	rcall WrCOM
-	rjmp  Mirror
+myLoop1End:	
+	rjmp  myLoop1
 	
+myLoop:
+	ldi    A,100		; write 100 TEST
+	rcall  WrCOM 
+myLoopEnd:	
+	rjmp  myLoop
+
 	
 Schleife:
 	rcall  RdCOM		;Interface 

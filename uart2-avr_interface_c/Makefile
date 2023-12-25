@@ -1,14 +1,14 @@
 # Copyright (C) 2017, Chris Simmonds (chris@2net.co.uk)
 #
 # If cross-compiling, CC must point to your cross compiler, for example:
-# make CPP=arm-linux-gnueabihf-gcc
+# make CPP=arm-linux-gnueabihf-g++
 
 LOCAL_CFLAGS ?= -Wall -g
-#LDLIBS=-lrt -I
+LDLIBS=-lrt -I. GPIO.cpp
 PROGRAM = uart2-avr_interface
 
 $(PROGRAM): $(PROGRAM).cpp
-	$(CC) $(CFLAGS) $(LOCAL_CFLAGS) $(LDFLAGS) $^ -o $@
+	$(CPP) $(CFLAGS) $(LOCAL_CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
 install : $(PROGRAM)
 	scp $(PROGRAM) root@10.0.0.117:/root

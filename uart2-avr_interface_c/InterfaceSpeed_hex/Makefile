@@ -9,7 +9,7 @@ $(PROGRAM): $(PROGRAM).asm
 
 install : $(PROGRAM).hex
 	scp $(PROGRAM).hex root@10.0.0.117:/root
-	cp $(PROGRAM).hex ../../bin
+	cp $(PROGRAM).hex ../bin
 
 clean:
 	rm -f $(PROGRAM)
