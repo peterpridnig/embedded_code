@@ -125,7 +125,7 @@ AVRInterface::AVRInterface(string tty_device, bool verbose=false) {
   
   if ((client = open(dev_name, O_RDWR | O_NOCTTY | O_NDELAY))<0){
     perror("UART: Failed to open the file.\n");
-    this->STATUS=-3;
+    this->STATUS=-2;
   }
   else
     { // man termios
@@ -157,7 +157,7 @@ void AVRInterface::ApplyResetPulse() {
     RST->setValue(HIGH);
     usleep(100000); // 100ms waiting time for "hi"
     tcflush(client, TCIFLUSH); // flush "hi"
-  } else { this->STATUS=-1; }
+  } else { this->STATUS=-3; }
 
 }
 
@@ -216,7 +216,7 @@ void AVRInterface::Interact(uint8_t cmd, uint8_t* result) { //write cmd; read re
 	cout << "Read is PASS (response " << (int)myresult->result << " after "<< myresult->nriter << " Iterations)" << endl;
       else {
 	cout << "Read is FAIL (response " << (int)myresult->result << " after "<< myresult->nriter << " Iterations)" << endl;
-	this->STATUS=-1;
+	this->STATUS=-4;
       }
     }
     delete myresult;
@@ -224,7 +224,7 @@ void AVRInterface::Interact(uint8_t cmd, uint8_t* result) { //write cmd; read re
   }
   else {
     if (this->verbose) cout << "Read is FAIL (no result)" << endl;
-    this->STATUS=-1;
+    this->STATUS=-5;
   }
 
 }
@@ -260,7 +260,7 @@ void AVRInterface::UnexportRST() {
 
   if (RST) {
     if (RST->IsExportedGPIO())
-	      RST->unexportGPIO(); else { this->STATUS=-1; }
+	      RST->unexportGPIO(); else { this->STATUS=-6; }
   }
 }
 
@@ -454,7 +454,7 @@ int main(int argc, char *argv[])
 
   AVILOG("Destruct Object...");  
   delete(pAVI);
-  cout << "done." << endl;
+  cout << "Exit." << endl;
   
   return 0;
 
