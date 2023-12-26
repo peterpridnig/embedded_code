@@ -25,10 +25,10 @@ Anfang:
 	sbi    portb,TXD
 	
 	rcall	AdcInit
-	rcall	ADCrd		;rjmp	OscKorr		;skip OsccalSet
+	rcall	ADCrd		;rjmp	OscKorr		;COMMENT OUT = speed adjustment=skip OsccalSet
 	
 OsccalSet:
-	ldi	A,74		;default osccal, necessary for unfused device! smaller=> faster
+	ldi	A,26		;adjust osccal: smaller=>slower
 	out	osccal,A
 	rjmp    Hi
 
@@ -66,15 +66,15 @@ k1:   	cpi    Kom,1
 k16:    cpi    Kom,16
 	brne   K17
 	rcall  RdCOM
-	  andi   A,0b00011001    
+	andi   A,0b00011001    
 	out    portb,A
-k17:      cpi    Kom,17
+k17:    cpi    Kom,17
 	brne   K18
 	rcall  RdCOM
 	andi   A,0b00011011  
 	ori    A,0b00000010
 	out    ddrb,A
-k18:      cpi    Kom,18
+k18:    cpi    Kom,18
 	brne   K32
 	ldi    A,0        ;PWM initialisieren
 	out    OCR0A, A 
@@ -82,16 +82,17 @@ k18:      cpi    Kom,18
 	out    TCCR0A, A
 	ldi    A,0x02
 	out    TCCR0B, A
-k32:      cpi    Kom,32
+k32:    cpi    Kom,32
 	brne   K48
 	in     A,pinb
 	rcall  WrCOM
-k48:      cpi    Kom,48
+k48:    cpi    Kom,48
 	brne   K49
 	ldi    A,2
 	rcall  AD8Bit
 	rcall  WrCOM
-k49:      cpi    Kom,49
+
+k49:    cpi    Kom,49
 	brne   K56
 	ldi    A,3
 	rcall  AD8Bit
@@ -105,11 +106,11 @@ k56:    cpi    Kom,56
 	mov    A,B
 	rcall  WrCOM
 
-k57:      cpi    Kom,57
+k57:    cpi    Kom,57
 	brne   K64
 	ldi    A,3
 	rcall  ADCrd
-      rcall  WrCOM
+        rcall  WrCOM
 	mov    A,B
 	rcall  WrCOM
 k64:  cpi    Kom,64
@@ -203,9 +204,9 @@ OscKorrektur:	 ;OSCCAL in EEPROM(63)
 	ret
 OscCopy:
 	rcall  WrCOM
-	ldi	EEadr,63
+	ldi    EEadr,63
 	rcall  RdEE
-	out	osccal,A
+	out    osccal,A
 	ret
 
 Cal: 
