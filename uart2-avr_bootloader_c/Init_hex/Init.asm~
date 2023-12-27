@@ -1,0 +1,509 @@
+; Tiny13
+
+;       Reset=PB5  	1	8	VCC 3,3 V
+;		PB3=ADC3	2	7	PB2 = RXD über 100k
+;		PB4=ADC2	3	6	PB1 = TXD
+;		GND			4	5	PB0, PWM	= Pol ADC2 Umschaltung +6V / +-3,3V
+
+
+	.include "tn13def.inc"
+
+;RS232, Empfangen und Senden mit 9600 Baud bei 1,2 MHz
+
+    .def   A      = r16
+    .def   Delay  = r17
+    .def   Count  = r18
+	.def   Kom    = r19
+    .def   B      = r20
+    .def   C      = r21
+    .def   D      = r22
+    .def   Count2 = r23
+    .def   EEadr  = r24
+    .def   EEmode = r25
+
+	;Port B
+    .equ   TXD    = 1
+    .equ   RXD    = 2
+	.equ   PWM    = 0
+
+.org    $0000
+        rjmp $0180
+
+.org 	$0010
+
+Anfang:
+      sbi    ddrb,TXD	;Datenrichtung TXD
+      rcall  AdcInit
+	  rcall  ADCrd
+      rcall  OscKorrektur
+
+Schleife:
+      rcall  RdCOM
+      mov    Kom,A
+k1:   cpi    Kom,1
+      brne   K16
+      ldi    A,100
+      rcall  WrCOM 
+k16:  cpi    Kom,16
+      brne   K17
+      rcall  RdCOM
+      andi   A,0b00011001    
+      out    portb,A
+k17:  cpi    Kom,17
+      brne   K18
+      rcall  RdCOM
+      andi   A,0b00011011  
+      ori    A,0b00000010
+      out    ddrb,A
+k18:  cpi    Kom,18
+      brne   K32
+      ldi    A,0        ;PWM initialisieren
+      out    OCR0A, A 
+      ldi    A,0x83     
+      out    TCCR0A, A
+      ldi    A,0x02
+      out    TCCR0B, A
+k32:  cpi    Kom,32
+      brne   K48
+      in     A,pinb
+      rcall  WrCOM
+k48:  cpi    Kom,48
+      brne   K49
+      ldi    A,2
+      rcall  AD8Bit
+      rcall  WrCOM
+k49:  cpi    Kom,49
+      brne   K56
+      ldi    A,3
+      rcall  AD8Bit
+      rcall  WrCOM
+
+k56:  cpi    Kom,56
+      brne   K57
+      ldi    A,2
+      rcall  ADCrd
+      rcall  WrCOM
+      mov    A,B
+      rcall  WrCOM
+
+k57:  cpi    Kom,57
+	brne   K64
+      ldi    A,3
+      rcall  ADCrd
+      rcall  WrCOM
+      mov    A,B
+      rcall  WrCOM
+k64:  cpi    Kom,64
+      brne   K100
+      rcall  RdCOM
+      out    OCR0A,A 
+
+k100: cpi    Kom,100 ;Oszi 1 Kanal
+      brne   K101
+Oszi: ldi    XL,96
+      ldi    XH,0
+      ldi    Count2,61
+O100: rcall  ADCrd8BitB4
+      st     X+,A
+      dec    Count2
+      brne   O100      ;61 mal
+
+      ldi   XL,96
+      ldi   XH,0
+      ldi   Count2,61
+O101:
+      Ld    A,X+
+      rcall WrCOM
+      dec   Count2
+      brne  O101      ;61 mal
+
+k101: cpi   Kom,101   ;Oszi 2 Kanal
+      brne  K250
+Oszi2:ldi   XL,96
+      Ldi   XH,0
+      Ldi   Count2,31
+O102: rcall ADCrd8BitB4
+      St    X+,A
+      rcall	ADCrd8BitB3
+      st    X+,A
+      dec   Count2
+      brne  O102     ;31 mal
+      ldi   XL,96
+      ldi   XH,0
+      ldi   Count2,62
+O103:	
+      Ld    A,X+
+      rcall WrCOM
+      dec   Count2
+      brne  O103     ;31 mal
+
+k250: cpi   Kom,250
+      brne  K251
+      rcall RdRXD
+      rcall WrCOM
+
+k251: cpi   Kom,251
+      brne  K252
+      in A, osccal
+      rcall WrCOM
+
+k252: cpi   Kom,252
+      brne  K253
+      ldi   EEadr,63
+      rcall RdEE
+      rcall WrCOM
+
+k253: cpi   Kom,253
+      brne  K254
+      rcall RdCOM
+      ldi   EEadr,63
+      rcall WrEE
+
+k254: cpi   Kom,254
+      brne  K255
+      rcall RdCOM
+      out   osccal,A
+
+
+k255: cpi   Kom,255  ;RC-Osc. kalibireren
+      brne  SchleifenEnde
+      rcall Cal      ;20 x Byte 0
+
+SchleifenEnde:
+      rjmp  Schleife
+
+
+Cal: 
+      in     B,osccal
+      ldi    D, 10	;maximale Abweichung
+      subi   B,10
+      ldi    Count2,20
+C1:
+      out    osccal, B
+      rcall  RdRXD     ;Zeit messen
+      subi   A,225     ;Byte 0: 225 
+      cpi    A,128
+      brlo   C1b
+      com    A
+C1b:
+      cp     A,D
+      brsh   C3
+      rcall  Hit
+C2:
+      cpi    A,3
+      brsh   C3
+      rcall  Hit
+C3: 
+      rcall  WrCOM
+      inc    B
+      dec    Count2
+      brne   C1
+      subi   B,10    ;alter Wert in osccal
+      mov    A,C     ;neuer Wert
+      out    osccal,A
+      ldi    EEadr,63
+      rcall  WrEE
+      rcall  WrCOM
+      mov    A,B
+      rcall  WrCOM
+      ret
+
+Hit: 
+      mov   C,B    ;besserer Osccal-Wert in C
+      inc   A
+      mov   D,A    ;kleinerer Grenzwert in D
+      dec   A
+      ret
+
+RdRXD:
+      sbis  PINB,RXD  ;9,6 kBaud, 25/Bit
+      rjmp  RdRXD
+      ldi   A,0  
+RXD0: inc   A         ;1
+      nop              ;1
+      sbic  PINB,RXD  ;2
+      rjmp  RXD0      ;1, 5 Takte
+      ret
+
+AD8Bit:
+      out   ADMUX,A
+      sbi   ADMUX,ADLAR   ;Left adjust
+      sbi   ADCSRA,ADSC   ;Wandlung starten
+AD8rdy:
+      sbic  ADCSRA,ADSC   
+      rjmp  AD8rdy
+      sbi   ADCSRA,ADSC
+AD8rdyb:
+      sbic  ADCSRA,ADSC   
+      rjmp  AD8rdyb
+      in    A,ADCH
+      ret
+	
+ADCrd:	
+      out   ADMUX,A
+      sbi   ADCSRA,ADSC   ;Wandlung starten
+AD10rdy:
+      sbic  ADCSRA,ADSC   
+      rjmp  AD10rdy
+      sbi   ADCSRA,ADSC
+AD10rdyb:
+      sbic  ADCSRA,ADSC   
+      rjmp  AD10rdyb
+      in    B,ADCL
+      in    A,ADCH
+      ret
+
+AdcInit: 
+      ldi   A,3         ;Clock / 4 
+      out   ADCSRA,A	
+      sbi   ADCSRA,ADEN ;AD einschalten 
+      ret
+
+ADCrd8BitB4:            ;8 Bit ADC2
+      ldi   A, 34 
+      out   ADMUX,A
+      sbi   ADCSRA,ADSC   
+AD4rdy:
+      sbic  ADCSRA,ADSC   
+      rjmp  AD4rdy
+      sbi   ADCSRA,ADSC
+AD4rdyb:
+      sbic  ADCSRA,ADSC   
+      rjmp  AD4rdyb
+      in    A,ADCH
+      ret
+
+ADCrd8BitB3:           ;8 Bit ADC3
+      ldi   A, 35 
+      out   ADMUX,A
+      sbi   ADCSRA,ADSC   
+AD3rdy:
+      sbic  ADCSRA,ADSC   
+      rjmp  AD3rdy
+      sbi   ADCSRA,ADSC
+AD3rdyb:
+      sbic  ADCSRA,ADSC   
+      rjmp  AD3rdyb
+      in    A,ADCH
+      ret
+
+
+RdCOM:  sbis  pinb,RXD  ;Empfangen
+        rjmp  RdCOM
+        ldi   Delay,58  
+D1:     dec   Delay
+        brne  D1
+        ldi   A,0
+        ldi   Count,8
+L1:     lsr   A
+        sbic  pinb,RXD
+        ori   A,128
+        ldi   Delay, 38  
+D2:     dec   Delay
+        brne  D2
+        dec   Count
+        brne  L1
+        ldi   Delay, 38
+D3:     dec   Delay
+        brne  D3
+        com   A
+        ret
+
+WrCOM:  sbi   portb,TXD  ;Senden
+        ldi   Delay,38 
+D4:     dec   Delay
+        brne  D4
+        ldi   Count,8
+L2:     sbrc  A,0
+        rjmp  OFF
+        rjmp  ONt
+ONt:    sbi   portb,TXD
+        rjmp  BitD
+OFF:    cbi   portb,TXD
+        rjmp  BitD
+BitD:   ldi   Delay,38  
+D5:     dec   Delay
+        brne  D5
+        lsr   A
+        dec   Count
+        brne  L2
+        cbi   PORTB,TXD
+        ldi   Delay,38  
+D6:     dec   Delay
+        brne  D6
+        ret
+
+
+WrEE:   sbic  EECR,EEWE
+        rjmp  WrEE
+        ldi   EEmode,0
+        out   EECR,EEmode	
+        out   EEARL,EEadr
+        out   EEDR,A
+        sbi   EECR,EEMPE	
+        sbi   EECR,EEPE	
+        ret
+
+
+      rjmp $0180
+.org $017E
+      rjmp $0010
+
+	
+.org 	$0180
+
+      .def	spmcsrval	=r28
+
+RESETboot:  
+      cli
+      rcall  OscKorrektur
+
+Breakstart:  
+      sbic  PINB,RXD
+      Rjmp  Brkend
+      Rjmp  $017E
+Brkend:
+      Sbic  PINB,RXD
+      Rjmp  Brkend
+      sbi   ddrb, TXD
+      ldi   A,105
+      rcall WrCOMb
+
+BootKom:
+      Rcall RdCOMb
+
+K201: mov   Kom,A
+      Cpi   Kom,201     ;201, Block schreiben
+      Brne  K202
+      Rcall write_page
+      Ldi   A,1
+      Rcall WrCOMb
+
+K202:	cpi   Kom,202     ;202, Block lesen
+      Brne  K203
+      Rcall read_page
+
+K203: cpi   Kom,203	;203, ProgStart
+      Brne  K204
+      In    A,PORTB
+      Rjmp  $017E
+K204: rjmp  BootKom
+
+
+
+write_page:
+      ldi   Count2,16
+      rcall RdCOMb      ;Adr Hi,Lo vom Host
+      mov   ZH,A
+      rcall RdCOMb
+      mov   ZL,A
+page_erase:
+      ldi   spmcsrval,3
+      out   SPMCSR, spmcsrval
+      spm
+
+wrloop:
+      rcall RdCOMb      ;32 Bytes vom Host
+      mov   r0,A        ;Highbyte zuerst
+      rcall RdCOMb
+      mov   r1,A
+      ldi   spmcsrval,1
+      out   SPMCSR, spmcsrval
+      spm
+      inc   ZL
+      inc   ZL
+      mov   A,r0
+      rcall WrCOMb
+      mov   A,r1
+      rcall WrCOMb
+      dec   Count2     ;16 mal
+      brne  wrloop
+      subi  ZL,32
+      ldi   spmcsrval,5
+      out   SPMCSR,spmcsrval
+      spm
+      ret
+
+read_page:
+      rcall RdCOMb     ;Adr Hi,Lo vom Host
+      mov   ZH,A
+      rcall RdCOMb
+      mov   ZL,A
+      ldi   Count2, 32
+rdloop:
+      lpm   A, Z+
+      rcall WrCOMb
+      dec   Count2	
+      brne  rdloop
+      ret
+
+RdCOMb:
+      sbis  PINB,RXD  ;38,4 kBaud
+      rjmp  RdCOMb
+      Ldi   Delay,58  ;200
+D1b:  dec   Delay
+      brne  D1b
+      ldi   A,0
+      ldi   Count,8
+L1b:  lsr   A
+      sbic  PINB,RXD
+      ori   A,128
+      ldi   Delay, 38  ;136
+D2b:  dec   Delay
+      brne  D2b
+      dec   Count
+      brne  L1b
+      ldi   Delay, 38
+D3b:  dec   Delay
+      brne  D3b
+      com   A
+      ret
+
+WrCOMb:
+      sbi   PORTB,TXD
+      ldi   Delay,38 
+D4b:  dec   Delay
+      brne  D4b
+      ldi   Count,8
+L2b:  sbrc  A,0
+      rjmp  OFFb
+      rjmp  ONtb
+ONtb: sbi   PORTB,TXD
+      Rjmp  BitDb
+OFFb: cbi   PORTB,TXD
+      rjmp  BitDb
+BitDb:
+      ldi   Delay,38  ;136
+D5b:  dec   Delay
+      brne  D5b
+      lsr   A
+      dec   Count
+      brne  L2b
+      cbi   PORTB,TXD
+      ldi   Delay,38  ;136
+D6b:  dec   Delay
+      brne  D6b
+      ret
+
+OscKorrektur:       ;OSCCAL = EEPROM(63) 
+      ldi    EEadr,63
+      rcall  RdEE
+      in     B, osccal
+      sub    B,A
+      cpi    B,5      ;Abweichung <5?
+      brlo   OscCopy
+      cpi    B,252	;Abweichung >-5?
+      brsh   OscCopy
+      ret
+OscCopy:
+      ldi    EEadr,63
+      rcall  RdEE
+      out    osccal,A
+      ret
+
+RdEE: sbic  EECR,EEWE	
+      rjmp  RdEE
+      out   EEAR,EEadr
+      sbi   EECR,EERE
+      in    A,EEDR
+      ret
