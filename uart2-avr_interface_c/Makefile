@@ -1,6 +1,6 @@
-# Copyright (C) 2017, Chris Simmonds (chris@2net.co.uk)
+# pridnig, 27.12.2023
 #
-# If cross-compiling, CC must point to your cross compiler, for example:
+# If cross-compiling, CC must point to the compiler:
 # make CPP=arm-linux-gnueabihf-g++
 
 LOCAL_CFLAGS ?= -Wall -g
@@ -18,7 +18,9 @@ install : $(PROGRAM)
 	cp $(PROGRAM) ../bin
 	cp flash_avr.sh ../bin
 	cp test-attiny-pins.sh ../bin
+	cp Interface_hex/Interface.hex ../bin
 
 clean:
 	rm -f $(PROGRAM)
+	rm -f *~
 

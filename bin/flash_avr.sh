@@ -5,7 +5,8 @@
 
 if [[ $# -eq 0 ]] ; then
     echo Usage
-    echo 'flash-avr <file.hex>'
+    echo '(1) Connect usbasp interface'
+    echo '(2) sh ./flash-avr.sh <file.hex>'
     echo
     exit 1
 fi
