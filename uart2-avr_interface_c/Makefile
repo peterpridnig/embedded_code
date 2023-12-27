@@ -12,7 +12,6 @@ $(PROGRAM): $(PROGRAM).cpp
 
 install : $(PROGRAM)
 	scp $(PROGRAM) root@10.0.0.117:/root
-	scp $(PROGRAM).cpp root@10.0.0.117:/root
 	scp flash_avr.sh root@10.0.0.117:/root
 	scp test-attiny-pins.sh root@10.0.0.117:/root
 	scp Interface_hex/Interface.hex root@10.0.0.117:/root
