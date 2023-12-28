@@ -71,10 +71,6 @@ RESETboot:
 OsccalSet:
       ldi    A,26		;adjust osccal: smaller=>slower
       out    osccal,A
-      rjmp   Breakstart
-	
-OscKorr:	
-      rcall  OscKorrektur
 
 Breakstart:  
       sbis  PINB,RXD		;RXD=1 => start main prog; RXD=0 => start bootloader
@@ -94,10 +90,8 @@ K201: mov   Kom,A
       Cpi   Kom,201     ;201, Block schreiben
       Brne  K202
       Rcall write_page
-      Ldi   A,1
-      Rcall WrCOMb
 
-K202: cpi   Kom,202     ;202, Block lesen
+K202: cpi   Kom,202     ;202, Block lesen 
       Brne  K203
       Rcall read_page
 
@@ -122,7 +116,7 @@ page_erase:
 
 wrloop:
       rcall RdCOMb      ;32 Bytes vom Host
-      mov   r0,A        ;Highbyte zuerst
+      mov   r0,A	;Highbyte zuerst
       rcall RdCOMb
       mov   r1,A
       ldi   spmcsrval,1
@@ -132,6 +126,7 @@ wrloop:
       inc   ZL
       mov   A,r0
       rcall WrCOMb
+      rcall myDelay
       mov   A,r1
       rcall WrCOMb
       dec   Count2     ;16 mal
@@ -141,7 +136,7 @@ wrloop:
       out   SPMCSR,spmcsrval
       spm
       ret
-
+	
 read_page:
       rcall RdCOMb     ;Adr Hi,Lo vom Host
       mov   ZH,A
@@ -151,6 +146,7 @@ read_page:
 rdloop:
       lpm   A, Z+
       rcall WrCOMb
+      rcall myDelay
       dec   Count2	
       brne  rdloop
       ret
@@ -200,25 +196,9 @@ D6:	dec   Delay
 	sbi   PORTB,TXD		;
 	ret
 	
-OscKorrektur:       ;OSCCAL = EEPROM(63) 
-      ldi    EEadr,63
-      rcall  RdEE
-      in     B, osccal
-      sub    B,A
-      cpi    B,5      ;Abweichung <5?
-      brlo   OscCopy
-      cpi    B,252	;Abweichung >-5?
-      brsh   OscCopy
-      ret
-OscCopy:
-      ldi    EEadr,63
-      rcall  RdEE
-      out    osccal,A
-      ret
-
-RdEE: sbic  EECR,EEWE	
-      rjmp  RdEE
-      out   EEAR,EEadr
-      sbi   EECR,EERE
-      in    A,EEDR
-      ret
+myDelay:
+      ldi Delay,255
+myDelay0:
+     dec Delay
+     brne myDelay0
+     ret	
