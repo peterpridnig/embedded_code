@@ -26,6 +26,8 @@
     .equ   RXD    = 2
     .equ   PWM    = 0
 
+    .equ   OSC = 74
+
 .org    $0000
 	rjmp $0180
 
@@ -69,7 +71,7 @@ RESETboot:
 	cli			;rjmp	OscKorr		;COMMENT OUT = speed adjustment=skip OsccalSet
 
 OsccalSet:
-      ldi    A,26		;adjust osccal: smaller=>slower
+      ldi    A,OSC		;adjust osccal: smaller=>slower
       out    osccal,A
 
 Breakstart:  

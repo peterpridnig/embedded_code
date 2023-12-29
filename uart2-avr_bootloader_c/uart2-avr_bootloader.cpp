@@ -687,7 +687,7 @@ void cHexFile::ReadHexFileContent() {
 
 void cHexFile::DisplayPages() {
 
-  cout << "Memory Pages: " << endl;
+  cout << "Extracted memory pages: " << endl;
   
   for (sPage p:Page) {
     cout << "Page#" << setw(2) << p.pagenr << " Addr Hi=" << setw(1) << (int)p.addrhi << " Lo=" << setw(3) << (int)p.addrlo <<" [";
@@ -708,7 +708,7 @@ void AVRBootloader::WriteHex(string filename) {
   cout << "Done" << endl;
   hf.DisplayPages();
 
-  cout << "Write to AVR:" << endl;
+  cout << "Write to AVR and readback:" << endl;
   uint8_t result {0};
   uint8_t result2 {0};
  
@@ -750,7 +750,7 @@ void AVRBootloader::WriteHex(string filename) {
   cout << "Done." << endl;
   usleep(100000);
  
-  cout << "Read back from AVR:" << endl;
+  cout << "Read back memory pages from AVR:" << endl;
   
   for (sPage p:hf.Page) {
     
@@ -846,7 +846,7 @@ int main(int argc, char *argv[])
       { "device",      1, 0, 'D' }, // 1,0 = 1 optarg
       { "reset",       0, 0, 'r' }, // 0,0 = 0 optarg
       { "enter",       0, 0, 'e' },
-      { "write",       1, 0, 'w' },      
+      { "writehex",    1, 0, 'w' },      
       { "cleanup",           0, 0, 'c' },
       { NULL,                0, 0, 0 },
     };

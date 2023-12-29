@@ -18,6 +18,8 @@
 	.equ   RXD    = 2
 	.equ   LED    = 4
 
+	.equ   OSC    = 74
+
 
 	rjmp   Anfang
 Anfang:
@@ -28,7 +30,7 @@ Anfang:
 	rcall	ADCrd		;rjmp	OscKorr		;COMMENT OUT = speed adjustment=skip OsccalSet
 	
 OsccalSet:
-	ldi	A,26		;adjust osccal: smaller=>slower
+	ldi	A,OSC		;adjust osccal: smaller=>slower
 	out	osccal,A
 	rjmp    Hi
 

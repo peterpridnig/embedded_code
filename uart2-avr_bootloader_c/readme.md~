@@ -1,0 +1,6 @@
+sh flash_avr.sh Init.hex 
+-r
+-r -e
+-v -r -e
+./uart2-avr_bootloader -e -w blink2.hex 
+
