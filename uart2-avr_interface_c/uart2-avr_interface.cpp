@@ -89,11 +89,15 @@ public:
   cResult() {
     status=IDLE;
     result=0;
+    result2=0;
     nriter=-1;
+    nriter2=-1;
   };
   enum eStatus status;
   uint8_t result;
+  uint8_t result2;
   int nriter;
+  int nriter2;
 };
 
 
@@ -106,8 +110,10 @@ private:
   int STATUS {0};
   pthread_t thread;
   friend void* threadedRead(void *value);
+  friend void* threadedRead2x(void *value);
   void Interact(uint8_t, uint8_t*); //write cmd, read result
   void Interact(uint8_t, uint8_t, uint8_t*); //write cmd, write arg, read result
+  void Interact(uint8_t, uint8_t*, uint8_t*); //write cmd, read result, read result2
   void Interact(uint8_t, uint8_t); //write cmd, write val
   
 
@@ -122,6 +128,7 @@ public:
   void OscCalReadEEProm();
   void OscCalWriteEEProm(uint8_t);
   void ByteLengthRead();
+  void FuseRead();
   void SetDdrB(uint8_t);
   void SetPortB(uint8_t);
   void ReadPortB();
@@ -219,6 +226,51 @@ void* threadedRead(void *myobj) {
 }
 
 
+void* threadedRead2x(void *myobj) {
+  
+  AVRInterface* p = static_cast<AVRInterface*>(myobj);
+  cResult *pResult = new (cResult);
+  if (pResult) {
+    pResult->status=RUNNING;
+			    
+    int i=0;
+    while (i++ < MAX_LOOP) {
+      if (read(p->client,&pResult->result,1) >0 ) break;
+      usleep(100);
+    }
+
+    if (i<MAX_LOOP) {
+      pResult->status=PASS;
+      pResult->nriter=i;
+    } else{
+      pResult->status=FAIL;
+      pResult->result=0;
+      pResult->nriter=i;
+    }
+
+    i=0;
+
+    while (i++ < MAX_LOOP) {
+      if (read(p->client,&pResult->result2,1) >0 ) break;
+      usleep(100);
+    }
+
+    if (i<MAX_LOOP) {
+      pResult->status=PASS;
+      pResult->nriter2=i;
+    } else{
+      pResult->status=FAIL;
+      pResult->result2=0;
+      pResult->nriter2=i;
+    }
+    
+    return pResult;
+    
+  } else return nullptr;
+  
+}
+
+
 void AVRInterface::Interact(uint8_t cmd, uint8_t* result) { //write cmd; read result
   *result=0;
  
@@ -299,6 +351,48 @@ void AVRInterface::Interact(uint8_t cmd, uint8_t arg, uint8_t* result) { //write
   }
 
 }
+
+
+void AVRInterface::Interact(uint8_t cmd, uint8_t* result, uint8_t* result2) { //write cmd, read result, read result2
+  *result=0;
+  *result2=0;
+ 
+  if (pthread_create(&this->thread, NULL, &threadedRead2x,  static_cast<void*>(this) )) {
+    perror("GPIO: Failed to create the read thread");
+    STATUS=-1;
+  }
+
+  if (write(this->client,&cmd,1)<0) {
+    perror("UART: write fail.\n");
+    this->STATUS=-8;
+  }
+  usleep(100);
+
+  void *v {nullptr};
+  pthread_join(this->thread, &v);
+
+  if (v) {
+    cResult* myresult=(cResult *)v;
+    *result=myresult->result;
+    *result2=myresult->result2;
+    
+    if (myresult->status==FAIL) this->STATUS=-4;
+    if (this->verbose) {
+      if (myresult->status==PASS) 
+	cout << "Read is PASS (response " << (int)myresult->result << " after "<< myresult->nriter << " Iterations" << (int)myresult->result2 << " after "<< myresult->nriter2 << " Iterations)"<< endl;
+      else 
+	cout << "Read is FAIL (response " << (int)myresult->result << " after "<< myresult->nriter << " Iterations)" << (int)myresult->result2 << " after "<< myresult->nriter2 << " Iterations)"<< endl;
+    }
+    delete myresult;
+    
+  }
+  else {
+    if (this->verbose) cout << "Read is FAIL (no result)" << endl;
+    this->STATUS=-5;
+  }
+
+}
+
 
 
 void AVRInterface::Interact(uint8_t cmd, uint8_t arg) { //write cmd; write arg
@@ -388,10 +482,10 @@ void AVRInterface::OscCalWriteEEProm(uint8_t arg) {
 
 void AVRInterface::ByteLengthRead() {
   uint8_t result {0};
-  
+  uint8_t empty {0};
   cout << "ByteLength Read: " << endl;
 
-  this->Interact(250, 0, &result);
+  this->Interact(250, empty, &result);
   if (this->STATUS>0) 
     cout << "response=" << (int)result << " target=225" << endl;
   else
@@ -399,6 +493,24 @@ void AVRInterface::ByteLengthRead() {
 
 }
 
+void AVRInterface::FuseRead() {
+  uint8_t result {0};
+  uint8_t result2 {0};
+  
+  cout << "Fuse Read: " << endl;
+  
+  stringstream ss;
+  ss << std::hex;
+    
+  this->Interact(249, &result, &result2);
+  if (this->STATUS>0) {
+    ss << (int)result2 << "(hi) " << (int)result << "(lo)";
+    cout << "response=" << ss.str() << endl;
+  }
+  else
+    cout << "FAIL" << endl;
+
+}
 
 void AVRInterface::SetDdrB(uint8_t arg) {
   
@@ -433,10 +545,11 @@ string Val2Dig(uint8_t digval, uint8_t weight)
 
 void AVRInterface::ReadPortB() {
   uint8_t result {0};
+  uint8_t empty {0};
   
   cout << "Read PortB: ";
 
-  this->Interact(32, 0, &result);
+  this->Interact(32, empty, &result);
   if (this->STATUS>0) {
     cout << "response=" << (int)result << endl;
     cout << "pb4 pb3 pb2 pb1 pb0" << endl;
@@ -492,6 +605,7 @@ void print_usage(const string prog)
   cout << "  -e --osccalwriteeeprom   write osccal value to eeprom"  << endl;
   cout << "  -p --osccalreadeeprom    read osccal value from eeprom" << endl;
   cout << "  -b --bytelengthread      read bytelength"               << endl;
+  cout << "  -f --fuseread            read fuses"                    << endl;  
   cout << "  -d --setddrb [val]       set portb ddr (1=out/0=in)"    << endl;
   cout << "  -t --setportb [val]      set portb (1=hi/0=lo)"         << endl;
   cout << "  -a --readportb           read portb (1=hi/0=lo)"        << endl;  
@@ -517,6 +631,7 @@ int main(int argc, char *argv[])
     uint16_t osccaleepromarg;
     bool osccalreadeeprom;
     bool bytelengthread;
+    bool fuseread;
     bool setddrb;
     uint16_t setddrbarg;
     bool setportb;
@@ -537,6 +652,7 @@ int main(int argc, char *argv[])
     .osccaleepromarg=0,
     .osccalreadeeprom=false,
     .bytelengthread=false,
+    .fuseread=false,
     .setddrb=false,
     .setddrbarg=0,
     .setportb=false,
@@ -560,6 +676,7 @@ int main(int argc, char *argv[])
       { "osccalwriteeeprom", 1, 0, 'e' },
       { "osccalreadeeprom",  0, 0, 'p' },
       { "bytelengthread",    0, 0, 'b' },
+      { "fuseread",          0, 0, 'f' },
       { "setddrb",           1, 0, 'd' },
       { "setportb",          1, 0, 't' },
       { "readportb",         0, 0, 'a' },
@@ -568,7 +685,7 @@ int main(int argc, char *argv[])
     };
     int c;
     
-    c = getopt_long(argc, argv, "vhrD:lw:oe:pbd:t:ac", lopts, NULL);
+    c = getopt_long(argc, argv, "vhrD:lw:oe:pbfd:t:ac", lopts, NULL);
 
     if (c == -1)
       break;
@@ -626,6 +743,11 @@ int main(int argc, char *argv[])
       mySeq.bytelengthread=true;
       break;
 
+    case 'f':
+      cout << "option f" << endl;
+      mySeq.fuseread=true;
+      break;
+      
     case 'd':
       cout << "option d" << endl;
       mySeq.setddrb=true;
@@ -691,6 +813,10 @@ int main(int argc, char *argv[])
     AVILOG("ByteLengthRead..."); pAVI->ByteLengthRead(); AVISTATUS; AVILOG("done\n");
   }
 
+  if (mySeq.fuseread) {
+    AVILOG("FuseRead..."); pAVI->FuseRead(); AVISTATUS; AVILOG("done\n");
+  }
+  
   if (mySeq.setddrb) {
     AVILOG("SetDdrB..."); pAVI->SetDdrB(mySeq.setddrbarg); AVISTATUS; AVILOG("done\n");
   }

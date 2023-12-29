@@ -561,6 +561,7 @@ public:
   uint8_t hex2dec(string);
   void ReadHexFileContent();
   void DisplayPages();
+  void InstallBootloader();
   
 };
 
@@ -603,7 +604,7 @@ void cHexFile::ReadHexFileContent() {
   string sol {':'};
   string line {""};
     
-  sPage myPage = {.pagenr {0}, .addrhi {0}, .addrlo {0}, .data {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} };
+  sPage myPage = {.pagenr {0}, .addrhi {0}, .addrlo {0}, .data {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} };
   int pagenr, pageaddr;
     
   uint8_t nrofbytes {0};
@@ -701,10 +702,53 @@ void cHexFile::DisplayPages() {
 
 }
 
+
+void cHexFile::InstallBootloader() {
+
+/* Init.hex
+:02 0000 00 "7FC1" BE 
+.org    $0000
+	rjmp $0180 = "7FC1"
+
+:02 02FC 00 "91CE" A1
+.org $017E (=2FC >> 1)
+      rjmp $0010 = "91CE" => "00C0"
+
+e.g blink2.hex
+:nr addr rt 
+:10 0000 00 "00C0" ...
+rjmp Anfang = "00C0" => "7FC1"
+
+substitute page content:
+Page# 0 Addr Hi=0 Lo=  0 [<7f> <c1> ...
+Page#23 Addr Hi=2 Lo=252 [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 <00> <c0> 0 0 ]
+*/
+
+  cout << "Installing Bootloader links: " << endl;
+
+    // remember rjmp Anfang
+  uint8_t a {Page.at(0).data[0]};
+  uint8_t b {Page.at(0).data[1]};
+
+  // rjmp $0180
+  Page.at(0).data[0]=127; //7f
+  Page.at(0).data[1]=193; //c1
+
+  sPage myPage = {.pagenr {23}, .addrhi {2}, .addrlo {252}, .data {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,a,b,0,0} };
+
+  Page.push_back(myPage);
+        
+  cout << "Done" << endl;
+    
+}
+
 void AVRBootloader::WriteHex(string filename) {
   cout << "Read hexfile " << filename << endl;
   cHexFile hf(filename, this->verbose);
   hf.ReadHexFileContent();
+  cout << "Done" << endl;
+  hf.DisplayPages();
+  hf.InstallBootloader();
   cout << "Done" << endl;
   hf.DisplayPages();
 

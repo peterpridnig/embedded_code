@@ -12,13 +12,14 @@
 	.def   Count2 = r23
 	.def   EEadr  = r24
 	.def   EEmode = r25
+	.def   spmcsrval=r28
 
 	 ;Port B
 	.equ   TXD    = 1
 	.equ   RXD    = 2
 	.equ   LED    = 4
 
-	.equ   OSC    = 74
+	.equ   OSC    = 26
 
 
 	rjmp   Anfang
@@ -140,7 +141,7 @@ O101:
 	brne  O101      ;61 mal
 
 k101: cpi   Kom,101   ;Oszi 2 Kanal
-	brne  K250
+	brne  K249
 Oszi2:ldi   XL,96
 	Ldi   XH,0
 	Ldi   Count2,31
@@ -159,7 +160,24 @@ O103:
 	dec   Count2
 	brne  O103	 ;31 mal
 
-k250: cpi   Kom,250
+k249:	cpi   Kom,249		;read FuseBytes
+        brne  k250
+        ldi   A,0
+	mov   ZH,A
+        mov   ZL,A		; Fuse Lo
+	ldi   spmcsrval,9 	; RFLB and SELFPREGEN
+        out   SPMCSR, spmcsrval
+	lpm   A,Z
+	rcall WrCOM
+	rcall myDelay
+	ldi   A,3
+	mov   ZL,A		; Fuse Hi
+	ldi   spmcsrval,9 	; RFLB and SELFPREGEN
+        out   SPMCSR, spmcsrval
+	lpm   A,Z
+	rcall WrCOM
+	
+k250:   cpi   Kom,250
 	brne  K251
 	rcall RdRXD
 	rcall WrCOM
@@ -410,3 +428,9 @@ WrEE:   sbic  EECR,EEWE
 	sbi   EECR,EEPE	
 	ret
 
+myDelay:
+        ldi Delay,255
+myDelay0:
+        dec Delay
+        brne myDelay0
+        ret	

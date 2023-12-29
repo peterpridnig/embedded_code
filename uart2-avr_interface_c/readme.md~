@@ -5,7 +5,6 @@ pridnig, 29.12.2023
 
 sh flash_avr.sh Interface.hex
 line#21: .equ OSC = 74
-sh write-fuses_avr.sh
 
 ./uart2-avr_interface -h ... help
 
@@ -16,8 +15,6 @@ press RESET button; expect "Hi" (observe TX with LogicAnalyzer)
 ./uart2-avr_interface --osccalread       ... read OSCCAL, expect ".equ OSC"
 ./uart2-avr_interface --bytelengthread   ... read bytelength, expect 225
 ./uart2-avr_interface --osccalwrite 74   ... fine tune
-./uart2-avr_interface --fuseread         ... read fuse bytes, expect eb(hi) 6a(lo)
-
 
 ## PORT CONFIG DIRECTION
 

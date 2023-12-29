@@ -1,0 +1,18 @@
+#!/bin/bash
+# ----------------
+# --- script
+# ----------------
+
+if [[ $# -eq 0 ]] ; then
+    echo Usage
+    echo '(1) Connect usbasp interface'
+    echo '(2) sh ./read_efuses-avr.sh <file.hex>'
+    echo
+    exit 1
+fi
+
+echo Connect usbasp interface
+echo Flashing...
+avrdude -c usbasp -p t13 -U flash:w:$1:i -F
+echo Done.
+

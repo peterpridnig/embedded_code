@@ -26,7 +26,7 @@
     .equ   RXD    = 2
     .equ   PWM    = 0
 
-    .equ   OSC = 74
+    .equ   OSC = 26
 
 .org    $0000
 	rjmp $0180
