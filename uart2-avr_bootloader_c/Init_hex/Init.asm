@@ -35,30 +35,72 @@
      rjmp Anfang
 
 Anfang:
-      ldi   r16,0x18    ;PB4 und PB4
+      ldi   r16,0x08    ;PB3=out
       out   ddrb,r16    ;Datenrichtung
 Schleife:
-      ldi   r16,8       ;8 = 0x08
-      out   portb,r16   ;PB3 = 1, PB4 = 0
-      rcall Warten      ;Unterprogrammaufruf
-      ldi   r16,16      ;16 = 0x10
-      out   portb,r16   ;PB3 = 0, PB4 = 1
-      rcall Warten      ;Unterprogrammaufruf
+      ldi   r16,0x08    
+      out   portb,r16   ;PB3 = 1
+      rcall WartenA     ;Unterprogrammaufruf
+      ldi   r16,0x00     
+      out   portb,r16   ;PB3 = 0
+      rcall WartenA      ;Unterprogrammaufruf
+      rcall WartenA      ;Unterprogrammaufruf	
+      ldi   r16,0x08    
+      out   portb,r16   ;PB3 = 1
+      rcall WartenB     ;Unterprogrammaufruf
+      ldi   r16,0x00     
+      out   portb,r16   ;PB3 = 0
+      rcall WartenB      ;Unterprogrammaufruf
+      rcall WartenA      ;Unterprogrammaufruf
+      rcall WartenA      ;Unterprogrammaufruf	
+      ldi   r16,0x08    
+      out   portb,r16   ;PB3 = 1
+      rcall WartenC     ;Unterprogrammaufruf
+      ldi   r16,0x00     
+      out   portb,r16   ;PB3 = 0
+      rcall WartenC      ;Unterprogrammaufruf
+      rcall WartenA      ;Unterprogrammaufruf
+      rcall WartenA      ;Unterprogrammaufruf		
+	
 rjmp  Schleife
 
-Warten:	
+	
+WartenA:	
       Ldi   r16,250      
-Warten1:                ;äußere Schleife
+WartenA1:                ;äußere Schleife
       Ldi   r17,250
-Warten2:                ;innere Schleife
+WartenA2:                ;innere Schleife
       dec   r17
-      brne  Warten2
+      brne  WartenA2
       dec   r16
-      brne  Warten1 
+      brne  WartenA1 
       ret               ;Rücksprung
 
+	
+WartenB:	
+      Ldi   r16,125      
+WartenB1:                ;äußere Schleife
+      Ldi   r17,255
+WartenB2:                ;innere Schleife
+      dec   r17
+      brne  WartenB2
+      dec   r16
+      brne  WartenB1 
+      ret               ;Rücksprung
 
+WartenC:	
+      Ldi   r16,63      
+WartenC1:                ;äußere Schleife
+      Ldi   r17,255
+WartenC2:                ;innere Schleife
+      dec   r17
+      brne  WartenC2
+      dec   r16
+      brne  WartenC1
+      ret               ;Rücksprung
 
+	
+	
 .org $017E
       rjmp $0010
 

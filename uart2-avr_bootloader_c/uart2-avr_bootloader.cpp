@@ -24,6 +24,7 @@
 #include <getopt.h>
 
 #include"GPIO.h"
+#include"HEX.h"
 
 using namespace exploringBB;
 using namespace std;
@@ -103,7 +104,9 @@ public:
   int GetStatus() {return STATUS; } //>0 means OK
   void ApplyResetPulse();
   void EnterBootloader();
-  void WriteHex(string);
+  void WriteFlash(string);
+  void ReadFlash();
+  void ProgStart();
   void UnexportRST();
 
 };
@@ -508,248 +511,17 @@ void AVRBootloader::EnterBootloader() {
 
 }
 
-/*
-RAMSIZE  = 1024d = 2^10
-PAGESIZE =   32d = 2^5
-NRPAGES  =   32d = 2^5 
 
-PAGE #0    00d = #0 x 32 / 0x00 : 32 x 1byte
- 0x00 1byte
- 0x01 1byte
- 0x02 1byte
- ...
- 0x1F 1byte
-
-PAGE  #1   32d = #2 x 32 / 0x020 : 32 x 1byte
-PAGE  #2   64d = #3 x 32 / 0x040 : 32 x 1byte 
-...
-PAGE #31 920d = #31 x 32 / 0x3e0 : 32 x 1 byte
-
-hex code contains byte addresses:
-ADDR = 0..1023 = 0x000... 0x3FF (11 1111 1111)
-
-determine page number from ADDR: ADDR >> 5
-determine address inside PAGE: ADDR bitand 0x1F
-
-e.g. ADDR=0x0020: page nr. = 0x001; addr inside page = 0x00
-e.g. ADDR=0x0030: page nr. = 0x001; addr inside page = 0x10
-
- */
-
-#define PAGE_SIZE_BITS 5
-#define PAGE_SIZE (1 << PAGE_SIZE_BITS)
-#define NR_OF_PAGES 32
-
-struct sPage {
-  int pagenr;       //0..31
-  uint8_t addrhi;
-  uint8_t addrlo;
-  uint8_t data[32]; //0..31
-};
-
-class cHexFile {
-public:
-  ifstream fs;
-  int FileStatus {0}; // >0 = OK
-  vector <sPage> Page {};
-  bool verbose {false};
-
-  
-  cHexFile(string, bool);
-  ~cHexFile();
-
-  uint8_t hex2dec(string);
-  void ReadHexFileContent();
-  void DisplayPages();
-  void InstallBootloader();
-  
-};
-
-cHexFile::cHexFile(string filename, bool verbose) {
-  this->verbose=verbose;
-  fs.open(filename.c_str());
-  if (!fs.is_open()){
-    perror("GPIO: read failed to open file ");
-  }
-    
-};
-
-cHexFile::~cHexFile() {
-  Page.clear();
-  fs.close();
-};
-
-
-
-uint8_t cHexFile::hex2dec(string s) {
-  if (s.length()!=2) { this->FileStatus=-1; return 0; }
-  // 0..9 = 48..57; A..F = 65..70
-  uint8_t ln=int(s.at(1)); // lower nibble
-  uint8_t un=int(s.at(0)); // upper nibble
-
-  if ((ln<48) || (un<48)) { this->FileStatus=-1; return 0; }
-  if ((ln>70) || (un>70)) { this->FileStatus=-1; return 0; }
-  if ((ln>57) && (ln<65)) { this->FileStatus=-1; return 0; }
-  if ((un>57) && (un<65)) { this->FileStatus=-1; return 0; }    
-    
-  if (ln <=57) ln-=48; else ln-=55;    
-  if (un <=57) un-=48; else un-=55;
-  return un*16+ln;
-}
-  
-void cHexFile::ReadHexFileContent() {
-  // https://en.wikipedia.org/wiki/Intel_HEX
-  
-  this->FileStatus=1;
-  string sol {':'};
-  string line {""};
-    
-  sPage myPage = {.pagenr {0}, .addrhi {0}, .addrlo {0}, .data {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} };
-  int pagenr, pageaddr;
-    
-  uint8_t nrofbytes {0};
-  uint8_t addrhi, addrlo;
-  int address {0};
-  uint8_t recordtype {0};
-  uint8_t esahi, esalo;
-  int esa {0};
-  uint8_t byte {0};
-  uint8_t checksum {0};
-    
-  while (!fs.eof())
-    {
-      getline(fs,line);
-      if (fs.eof()) break;
-      checksum=0;
-
-      if (line.length()<1+2+4+2+2)  { FileStatus=-1; break;} //min length
-      if (line.substr(0,1) != sol) { FileStatus=-2; break;}  //:
-      if (this->verbose) cout << sol << " ";
-
-      nrofbytes=this->hex2dec(line.substr(1,2)); checksum+=nrofbytes;
-      if (this->verbose) cout << "NR=" << line.substr(1,2) << "(" << (int)nrofbytes << "d)";
-      if (line.length()<1+2+4+2+(unsigned)nrofbytes*2+2)  { FileStatus=-1; break;} //min length
-
-      addrhi=this->hex2dec(line.substr(3,2)); checksum+=addrhi;
-      addrlo=this->hex2dec(line.substr(5,2)); checksum+=addrlo;
-      address=addrhi*256+addrlo;
-      if (this->verbose) cout << "ADDR=" << line.substr(3,4) << "(" << (int)address << "d)";
-
-      recordtype=this->hex2dec(line.substr(7,2)); checksum+=recordtype;
-      if (this->verbose) cout << "RT="<< line.substr(7,2) << "(" << (int)recordtype << "d)";
-
-      if (recordtype==2) { //Extended Segment Address
-	if (this->verbose) cout << "ESA=";
-	esahi=this->hex2dec(line.substr(9,2)); checksum+=esahi;
-	esalo=this->hex2dec(line.substr(9+2,2)); checksum+=esalo;
-	esa=16*(esahi*256+esalo);
-	if (this->verbose) cout << line.substr(9,4) << "(" << (int)esa << "d),";
-      }
-	
-      if (recordtype==0) { //Data
-	if (this->verbose) cout << "DATA=";
-
-	pagenr = (esa+address) >> PAGE_SIZE_BITS;
-	pageaddr = ( (esa+address) & (PAGE_SIZE-1) ); //address inside page
-
-	//cout << endl;
-	//cout << "pagenr: " << pagenr << " pageaddr" << pageaddr << "size: " << PAGE_SIZE << endl;
-	  
-	if (pagenr > myPage.pagenr) {
-	  Page.push_back(myPage); // save current page
-	  myPage.pagenr=pagenr;   // create new empty page
-	  myPage.addrhi=addrhi;
-	  myPage.addrlo=(pagenr * PAGE_SIZE) & 255; //was addrlo
-	  for (size_t i=0;i<PAGE_SIZE;i++) myPage.data[i]=0;
-	}
-
-	for (uint8_t i=0;i< nrofbytes; i++) {
-	  byte=this->hex2dec(line.substr(9+i*2,2)); checksum+=byte;
-	  myPage.data[pageaddr+i]=byte;
-	  if (this->verbose) cout << line.substr(9+i*2,2) << "(" << (int)byte << "d),";	    
-	}
-	  
-      }
-
-      uint8_t cksum=this->hex2dec(line.substr(9+nrofbytes*2,2)); checksum+=cksum;
-      if (this->verbose) cout << "CK=" << line.substr(9+nrofbytes*2,2) << "(" << (int)cksum << "d)";
-      if (this->verbose) cout << "CHECKS=" << (int)checksum;
-      if (checksum) { FileStatus=-2; break;} 
-
-      if (this->verbose) cout << " status: " << this->FileStatus << endl;
-
-    }
-
-  Page.push_back(myPage); // save current page
-
-
-}
-
-
-void cHexFile::DisplayPages() {
-
-  cout << "Memory pages extracted from HexFile: " << endl;
-  
-  for (sPage p:Page) {
-    cout << "Page#" << setw(2) << p.pagenr << " Addr Hi=" << setw(1) << (int)p.addrhi << " Lo=" << setw(3) << (int)p.addrlo <<" [";
-    stringstream ss;
-    ss << std::hex;
-    for (uint8_t i=0;i< PAGE_SIZE; i++) ss << (int)p.data[i] << " ";
-    cout << ss.str() << "]" << endl;
-  }
-
-  cout << "Done" << endl;
-
-}
-
-
-void cHexFile::InstallBootloader() {
-
-/* Init.hex
-:02 0000 00 "7FC1" BE 
-.org    $0000
-	rjmp $0180 = "7FC1"
-
-:02 02FC 00 "91CE" A1
-.org $017E (=2FC >> 1)
-      rjmp $0010 = "91CE" => "00C0"
-
-e.g blink2.hex
-:nr addr rt 
-:10 0000 00 "00C0" ...
-rjmp Anfang = "00C0" => "7FC1"
-
-substitute page content:
-Page# 0 Addr Hi=0 Lo=  0 [<7f> <c1> ...
-Page#23 Addr Hi=2 Lo=252 [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 <00> <c0> 0 0 ]
-*/
-
-  cout << "Installing Bootloader links: " << endl;
-
-    // remember rjmp Anfang
-  uint8_t a {Page.at(0).data[0]};
-  uint8_t b {Page.at(0).data[1]};
-
-  // rjmp $0180
-  Page.at(0).data[0]=127; //7f
-  Page.at(0).data[1]=193; //c1
-
-  sPage myPage = {.pagenr {23}, .addrhi {2}, .addrlo {224}, .data {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,a,b,0,0} };
-
-  Page.push_back(myPage);
-        
-  cout << "Done" << endl;
-    
-}
-
-void AVRBootloader::WriteHex(string filename) {
+void AVRBootloader::WriteFlash(string filename) {
   cout << "Read hexfile " << filename << endl;
   cHexFile hf(filename, this->verbose);
   hf.ReadHexFileContent();
   cout << "Done" << endl;
+
   hf.DisplayPages();
+  //cout << "Highest Page#" << hf.Page.at(hf.Page.size()) << endl;
+  
   hf.InstallBootloader();
-  cout << "Done" << endl;
   hf.DisplayPages();
 
   cout << "Write to AVR and readback:" << endl;
@@ -832,12 +604,67 @@ void AVRBootloader::WriteHex(string filename) {
 }
 
 
+void AVRBootloader::ReadFlash() {
+  cout << "Read FlashMemory from AVR: "<< endl;
+ 
+  for (int pagenr {0};pagenr < NR_OF_PAGES;pagenr++) {
+    
+    cout << "Page#" << setw(2) << pagenr;
+     
+    this->Interact(202);
+    if (this->STATUS<=0) { cout << "FAIL" << endl; break; };
+    usleep(10000);
+
+    int z = (pagenr << PAGE_SIZE_BITS) + 0x0;
+    uint8_t addrhi =(z >> 8) & 255 ;
+    uint8_t addrlo = z & 255;
+    
+    this->Interact( addrhi   ); //ZHI
+    if (this->STATUS<=0) { cout << "FAIL" << endl; break; };
+    usleep(10000);
+
+    this->Interact( addrlo ); //ZLO
+    if (this->STATUS<=0) { cout << "FAIL" << endl; break; };
+    usleep(10000);
+    
+    cout << " Addr Hi=" << setw(1) << (int)addrhi << " Lo=" << setw(3) << (int)addrlo << " [";
+    
+    stringstream ss;
+    ss << std::hex;
+
+    uint8_t result {0};
+    uint8_t result2  {0};
+    
+    for (uint8_t i=0;i< PAGE_SIZE; i+=2) {
+      this->Interact(&result, &result2);
+      if (this->STATUS>0) ss << (int)result << " " << (int)result2 << " ";
+      //cout << "response=" << (int)result << "," << (int)result2 << endl;
+      else cout << "FAIL" << endl;
+      usleep(100);
+    }
+    cout << ss.str() << "]" << endl;
+    
+  }
+  
+  cout << "Done." << endl;
+}
+
+
+void AVRBootloader::ProgStart() {
+  cout << "Start Program:: "<< endl;
+ 
+  this->Interact(203);
+  if (this->STATUS<=0) { cout << "FAIL" << endl; };
+  usleep(10000);
+
+}
+
 
 void AVRBootloader::UnexportRST() {
 
   if (RST) {
     if (RST->IsExportedGPIO())
-	      RST->unexportGPIO(); else { this->STATUS=-6; }
+      RST->unexportGPIO(); else { this->STATUS=-6; }
   }
 }
 
@@ -851,7 +678,9 @@ void print_usage(const string prog)
   cout << "  -D --device [dev]        device to use (default "       << TTY_DEVICE << ")" << endl;
   cout << "  -r --reset               apply reset pulse"             << endl;
   cout << "  -e --enter               enter bootloader"              << endl;
-  cout << "  -w --writehex [file]     write hex file"                << endl;  
+  cout << "  -w --writeflash [file]   write hex file to flash"       << endl;
+  cout << "  -f --readflash           read flash memoy"              << endl;
+  cout << "  -p --progstarth          start programy"                << endl;  
   cout << "  -c --cleanup             unexport RST pin"              << endl;  
   exit(1);
 }
@@ -867,6 +696,8 @@ int main(int argc, char *argv[])
     bool enter;
     bool write;
     string writearg;
+    bool read;
+    bool progstart;
     bool cleanup;
   };
  
@@ -877,6 +708,8 @@ int main(int argc, char *argv[])
     .enter=false,
     .write=false,
     .writearg="",
+    .read=false,
+    .progstart=false,
     //...
     .cleanup=false,
   };
@@ -890,13 +723,15 @@ int main(int argc, char *argv[])
       { "device",      1, 0, 'D' }, // 1,0 = 1 optarg
       { "reset",       0, 0, 'r' }, // 0,0 = 0 optarg
       { "enter",       0, 0, 'e' },
-      { "writehex",    1, 0, 'w' },      
-      { "cleanup",           0, 0, 'c' },
-      { NULL,                0, 0, 0 },
+      { "writeflash",  1, 0, 'w' },
+      { "readflash",   0, 0, 'f' },
+      { "progstart",   0, 0, 'p' },      
+      { "cleanup",     0, 0, 'c' },
+      { NULL,          0, 0, 0 },
     };
     int c;
     
-    c = getopt_long(argc, argv, "vhrew:D:c", lopts, NULL);
+    c = getopt_long(argc, argv, "vhrew:fpD:c", lopts, NULL);
 
     if (c == -1)
       break;
@@ -932,6 +767,16 @@ int main(int argc, char *argv[])
       mySeq.write=true;
       mySeq.writearg=optarg;
       break;
+
+    case 'f':
+      cout << "option f" << endl;
+      mySeq.read=true;
+      break;
+
+    case 'p':
+      cout << "option p" << endl;
+      mySeq.progstart=true;
+      break;
       
     case 'c':
       cout << "prepare option c" << endl;
@@ -962,7 +807,15 @@ int main(int argc, char *argv[])
   }
 
   if (mySeq.write) {
-    AVILOG("Write HexFile..."); pAVI->WriteHex(mySeq.writearg); AVISTATUS; AVILOG("done\n");
+    AVILOG("Write HexFile to Flash..."); pAVI->WriteFlash(mySeq.writearg); AVISTATUS; AVILOG("done\n");
+  }
+
+  if (mySeq.read) {
+    AVILOG("Read Flash Memory..."); pAVI->ReadFlash(); AVISTATUS; AVILOG("done\n");
+  }
+
+  if (mySeq.progstart) {
+    AVILOG("Start Program..."); pAVI->ProgStart(); AVISTATUS; AVILOG("done\n");
   }
   
   if (mySeq.cleanup) {

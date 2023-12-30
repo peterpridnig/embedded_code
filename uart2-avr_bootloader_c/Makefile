@@ -4,7 +4,7 @@
 # make CPP=arm-linux-gnueabihf-g++
 
 LOCAL_CFLAGS ?= -Wall -g
-LDLIBS=-lrt -I. GPIO.cpp
+LDLIBS=-lrt -I. GPIO.cpp HEX.cpp
 PROGRAM = uart2-avr_bootloader
 
 $(PROGRAM): $(PROGRAM).cpp
