@@ -650,7 +650,7 @@ void cHexFile::ReadHexFileContent() {
 	if (this->verbose) cout << "DATA=";
 
 	pagenr = (esa+address) >> PAGE_SIZE_BITS;
-	pageaddr = ( (esa+address) & (PAGE_SIZE-1) );
+	pageaddr = ( (esa+address) & (PAGE_SIZE-1) ); //address inside page
 
 	//cout << endl;
 	//cout << "pagenr: " << pagenr << " pageaddr" << pageaddr << "size: " << PAGE_SIZE << endl;
@@ -659,7 +659,7 @@ void cHexFile::ReadHexFileContent() {
 	  Page.push_back(myPage); // save current page
 	  myPage.pagenr=pagenr;   // create new empty page
 	  myPage.addrhi=addrhi;
-	  myPage.addrlo=addrlo;
+	  myPage.addrlo=(pagenr * PAGE_SIZE) & 255; //was addrlo
 	  for (size_t i=0;i<PAGE_SIZE;i++) myPage.data[i]=0;
 	}
 
@@ -688,7 +688,7 @@ void cHexFile::ReadHexFileContent() {
 
 void cHexFile::DisplayPages() {
 
-  cout << "Extracted memory pages: " << endl;
+  cout << "Memory pages extracted from HexFile: " << endl;
   
   for (sPage p:Page) {
     cout << "Page#" << setw(2) << p.pagenr << " Addr Hi=" << setw(1) << (int)p.addrhi << " Lo=" << setw(3) << (int)p.addrlo <<" [";
@@ -734,7 +734,7 @@ Page#23 Addr Hi=2 Lo=252 [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
   Page.at(0).data[0]=127; //7f
   Page.at(0).data[1]=193; //c1
 
-  sPage myPage = {.pagenr {23}, .addrhi {2}, .addrlo {252}, .data {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,a,b,0,0} };
+  sPage myPage = {.pagenr {23}, .addrhi {2}, .addrlo {224}, .data {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,a,b,0,0} };
 
   Page.push_back(myPage);
         
