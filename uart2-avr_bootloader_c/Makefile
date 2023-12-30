@@ -7,7 +7,7 @@ LOCAL_CFLAGS ?= -Wall -g
 LDLIBS=-lrt -I. GPIO.cpp HEX.cpp
 PROGRAM = uart2-avr_bootloader
 
-$(PROGRAM): $(PROGRAM).cpp
+$(PROGRAM): $(PROGRAM).cpp 
 	$(CPP) $(CFLAGS) $(LOCAL_CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
 install : $(PROGRAM)

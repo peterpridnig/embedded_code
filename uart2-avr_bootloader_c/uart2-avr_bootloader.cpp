@@ -499,6 +499,7 @@ void AVRBootloader::EnterBootloader() {
     usleep(100000); // 100 ms
     
     tcflush(client, TCIFLUSH); // flush "hi"
+    usleep(100000); // 100 ms
     
     if (result==105)     
       cout << "Bootloader entered successfully" << endl;
@@ -651,10 +652,10 @@ void AVRBootloader::ReadFlash() {
 
 
 void AVRBootloader::ProgStart() {
-  cout << "Start Program:: "<< endl;
+  cout << "Start Program: "<< endl;
  
   this->Interact(203);
-  if (this->STATUS<=0) { cout << "FAIL" << endl; };
+  if (this->STATUS<=0) cout << "FAIL" << endl; else cout << "Done" << endl;
   usleep(10000);
 
 }

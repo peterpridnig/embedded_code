@@ -22,6 +22,6 @@ press RESET button; expect blinking LED
 ./uart2-avr_bootloader --writeflash <hexfile.hex> ... write hexfile to flash
 
 ### download blink2.hex
-./uart2-avr_bootloader --writehex blink2.hex .. write hexfile
+./uart2-avr_bootloader --writeflash blink2.hex .. write hexfile
 
 

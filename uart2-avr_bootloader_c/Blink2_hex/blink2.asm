@@ -16,7 +16,7 @@ Schleife:
 rjmp  Schleife
 
 Warten:	
-      Ldi   r16,250      
+      Ldi   r16,125      
 Warten1:                ;‰uﬂere Schleife
       Ldi   r17,250
 Warten2:                ;innere Schleife

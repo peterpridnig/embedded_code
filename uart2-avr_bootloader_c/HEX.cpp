@@ -60,7 +60,7 @@ void cHexFile::ReadHexFileContent() {
   string sol {':'};
   string line {""};
     
-  sPage myPage = {.pagenr {0}, .addrhi {0}, .addrlo {0}, .data {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} };
+  sPage myPage = {.pagenr {0}, .addrhi {0}, .addrlo {0}, .data {255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255} };
   int pagenr, pageaddr;
     
   uint8_t nrofbytes {0};
@@ -117,7 +117,7 @@ void cHexFile::ReadHexFileContent() {
 	  int z = (myPage.pagenr << PAGE_SIZE_BITS) + 0x00000;
 	  myPage.addrhi =(z >> 8) & 255 ;
 	  myPage.addrlo = z & 255;
-	  for (size_t i=0;i<PAGE_SIZE;i++) myPage.data[i]=0;
+	  for (size_t i=0;i<PAGE_SIZE;i++) myPage.data[i]=255;
 	}
 
 	for (uint8_t i=0;i< nrofbytes; i++) {
@@ -145,7 +145,7 @@ void cHexFile::ReadHexFileContent() {
 
 void cHexFile::DisplayPages() {
 
-  cout << "Memory pages extracted from HexFile: " << endl;
+  cout << "Memory pages: " << endl;
   
   for (sPage p:Page) {
     cout << "Page#" << setw(2) << p.pagenr << " Addr Hi=" << setw(1) << (int)p.addrhi << " Lo=" << setw(3) << (int)p.addrlo <<" [";
@@ -189,14 +189,35 @@ xyz = -(0x17E - 0x001) = inv(0x17D)
   cout << "Installing Bootloader links: " << endl;
 
     // remember rjmp Anfang
-  uint8_t a {Page.at(0).data[0]};
-  uint8_t b {Page.at(0).data[1]};
+  uint8_t ab {Page.at(0).data[0]};
+  uint8_t cd {Page.at(0).data[1]};
+  // cd ab = 1100 dab
+  //         rjump 0xdab
 
   // rjmp $0180
   Page.at(0).data[0]=127; //7f
   Page.at(0).data[1]=193; //c1
+  // 7F C1 i.e.
+  // C1 7F = 1100 0001 0111 1111
+  //       = rjump 0x17E+1=0x180
 
-  sPage myPage = {.pagenr {23}, .addrhi {2}, .addrlo {224}, .data {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,a,b,0,0} };
+  // init.asm
+  //.org $017E
+  //    rjmp -(0x17E-0xdab)
+  //    rjmp inv(0x17E-0xdab)
+  //    C    xyz
+  // yz Cx
+
+  int delta = ( 1*256+7*16+14 - ( (cd & 15)*16 + ab + 1) );
+  cout << "delta=" << delta << endl;
+  delta=~(delta-1);
+
+  uint8_t yz = delta & 255;
+  uint8_t cx = (12 << 4) + ((delta >> 8) & 15);
+
+  cout << " cx=" << (int)cx << " yz=" << (int)yz << endl;
+  
+  sPage myPage = {.pagenr {23}, .addrhi {2}, .addrlo {224}, .data {255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,yz,cx,255,255} };
 
   Page.push_back(myPage);
         
