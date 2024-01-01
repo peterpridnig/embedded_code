@@ -626,7 +626,7 @@ void AVRBootloader::ReadFlash() {
 
     this->Interact( addrlo ); //ZLO
     if (this->STATUS<=0) { cout << "FAIL" << endl; break; };
-    usleep(10000);
+    usleep(20000);
     
     cout << " Addr Hi=" << setw(1) << (int)addrhi << " Lo=" << setw(3) << (int)addrlo << " [";
     
@@ -641,7 +641,7 @@ void AVRBootloader::ReadFlash() {
       if (this->STATUS>0) ss << (int)result << " " << (int)result2 << " ";
       //cout << "response=" << (int)result << "," << (int)result2 << endl;
       else cout << "FAIL" << endl;
-      usleep(100);
+      usleep(1000);
     }
     cout << ss.str() << "]" << endl;
     

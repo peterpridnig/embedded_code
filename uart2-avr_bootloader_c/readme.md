@@ -17,9 +17,9 @@ press RESET button; expect blinking LED
 
 ./uart2-avr_bootloader --enter     ... enter bootloader, expect "105"
 ./uart2-avr_bootloader --readflash ... read entire flash content
-./uart2-avr_bootloader --progstart ... start program
 
 ./uart2-avr_bootloader --writeflash <hexfile.hex> ... write hexfile to flash
+./uart2-avr_bootloader --progstart ... start program
 
 ### download blink2.hex
 ./uart2-avr_bootloader --writeflash blink2.hex .. write hexfile

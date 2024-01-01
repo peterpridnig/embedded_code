@@ -210,7 +210,7 @@ xyz = -(0x17E - 0x001) = inv(0x17D)
 
   int delta = ( 1*256+7*16+14 - ( (cd & 15)*16 + ab + 1) );
   cout << "delta=" << delta << endl;
-  delta=~(delta-1);
+  delta=~(delta);
 
   uint8_t yz = delta & 255;
   uint8_t cx = (12 << 4) + ((delta >> 8) & 15);
