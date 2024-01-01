@@ -13,8 +13,8 @@ $(PROGRAM): $(PROGRAM).cpp
 install : $(PROGRAM)
 	scp $(PROGRAM) root@10.0.0.117:/root
 	scp Init_hex/Init.hex root@10.0.0.117:/root
-	cp $(PROGRAM) ../bin
-	cp Init_hex/Init.hex ../bin
+	cp $(PROGRAM) $WORKAREA/userland/code/bin
+	cp Init_hex/Init.hex $WORKAREA/userland/code/bin
 
 clean:
 	rm -f $(PROGRAM)

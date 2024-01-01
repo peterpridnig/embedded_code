@@ -517,15 +517,17 @@ void AVRBootloader::WriteFlash(string filename) {
   cout << "Read hexfile " << filename << endl;
   cHexFile hf(filename, this->verbose);
   hf.ReadHexFileContent();
+  if (hf.FileStatus < 0) {cout << "Hexfile error." << endl; this->STATUS=-10; exit(-10); };
   cout << "Done" << endl;
 
   hf.DisplayPages();
-  //cout << "Highest Page#" << hf.Page.at(hf.Page.size()) << endl;
+  cout << "Highest page:" << hf.Page.at(hf.Page.size()-1).pagenr << " max. 22 allowed)" << endl;
+  if (hf.Page.at(hf.Page.size()-1).pagenr > 22) {cout << "Hex file too big." << endl; this->STATUS=-11; exit(-11); };
   
   hf.InstallBootloader();
   hf.DisplayPages();
 
-  cout << "Write to AVR and readback:" << endl;
+  cout << "Write to AVR Flash and readback:" << endl;
   uint8_t result {0};
   uint8_t result2 {0};
  
@@ -583,7 +585,7 @@ void AVRBootloader::WriteFlash(string filename) {
 
     this->Interact(p.addrlo);
     if (this->STATUS<=0) { cout << "FAIL" << endl; break; };
-    usleep(10000);
+    usleep(20000);
     
     cout << " Addr Hi=" << setw(1) << (int)p.addrhi << " Lo=" << setw(3) << (int)p.addrlo << " [";
     
@@ -595,7 +597,7 @@ void AVRBootloader::WriteFlash(string filename) {
       if (this->STATUS>0) ss << (int)result << " " << (int)result2 << " ";
       //cout << "response=" << (int)result << "," << (int)result2 << endl;
       else cout << "FAIL" << endl;
-      usleep(100);
+      usleep(1000);
     }
     cout << ss.str() << "]" << endl;
     

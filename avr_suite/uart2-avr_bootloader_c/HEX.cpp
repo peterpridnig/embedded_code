@@ -209,13 +209,13 @@ xyz = -(0x17E - 0x001) = inv(0x17D)
   // yz Cx
 
   int delta = ( 1*256+7*16+14 - ( (cd & 15)*16 + ab + 1) );
-  cout << "delta=" << delta << endl;
+  //cout << "delta=" << delta << endl;
   delta=~(delta);
 
   uint8_t yz = delta & 255;
   uint8_t cx = (12 << 4) + ((delta >> 8) & 15);
 
-  cout << " cx=" << (int)cx << " yz=" << (int)yz << endl;
+  //cout << " cx=" << (int)cx << " yz=" << (int)yz << endl;
   
   sPage myPage = {.pagenr {23}, .addrhi {2}, .addrlo {224}, .data {255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,yz,cx,255,255} };
 

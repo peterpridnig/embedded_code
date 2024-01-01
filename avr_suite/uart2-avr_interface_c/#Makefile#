@@ -17,10 +17,10 @@ install : $(PROGRAM)
 	scp write-efuses_avr.sh root@10.0.0.117:/root
 	scp test-attiny-pins.sh root@10.0.0.117:/root
 	scp Interface_hex/Interface.hex root@10.0.0.117:/root
-	cp $(PROGRAM) ../bin
-	cp flash_avr.sh ../bin
-	cp test-attiny-pins.sh ../bin
-	cp Interface_hex/Interface.hex ../bin
+	cp $(PROGRAM) $(WORKAREA)/userland/code/bin
+	cp flash_avr.sh $(WORKAREA)/userland/code/bin
+	cp test-attiny-pins.sh $(WORKAREA)/userland/code/bin
+	cp Interface_hex/Interface.hex $(WORKAREA)/userland/code/bin
 
 clean:
 	rm -f $(PROGRAM)
