@@ -613,7 +613,8 @@ void print_usage(const string prog)
   cout << "  -a --readportb           read portb (1=hi/0=lo)"        << endl;
   cout << "                           -------------------"           << endl;
   cout << "                           pb4 pb3 pb2 pb1 pb0"           << endl;
-  cout << "                           swi led rxd txd ---"           << endl;
+  cout << "                           swi led rxd txd led"           << endl;
+  cout << "                            pd org -na -na red"           << endl;  
   cout << "                           -------------------"           << endl;  
   cout << "  -c --cleanup             unexport RST pin"              << endl;  
   exit(1);

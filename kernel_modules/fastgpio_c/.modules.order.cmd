@@ -1,1 +1,1 @@
-cmd_/home/peter/mastering_beaglebone/userland/code/fastgpio_c/modules.order := {   echo /home/peter/mastering_beaglebone/userland/code/fastgpio_c/fastgpio.ko; :; } | awk '!x[$$0]++' - > /home/peter/mastering_beaglebone/userland/code/fastgpio_c/modules.order
+cmd_/home/peter/mastering_beaglebone/userland/code/kernel_modules/fastgpio_c/modules.order := {   echo /home/peter/mastering_beaglebone/userland/code/kernel_modules/fastgpio_c/fastgpio.ko; :; } | awk '!x[$$0]++' - > /home/peter/mastering_beaglebone/userland/code/kernel_modules/fastgpio_c/modules.order

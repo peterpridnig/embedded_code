@@ -21,11 +21,11 @@ press RESET button; expect "Hi" (observe TX with LogicAnalyzer)
 
 ## PORT CONFIG DIRECTION
 
-./uart2-avr_interface --setddrb  8 ... set PB3 to output, PB4 to input
+./uart2-avr_interface --setddrb  9 ... set PB3=PB0=output, PB4=input
 
 ### LED CONTROL
-./uart2-avr_interface --setportb 8 ... set PB3 HI
-./uart2-avr_interface --setportb 0 ... set PB3 LO
+./uart2-avr_interface --setportb 9 ... set PB3=PB4=HI
+./uart2-avr_interface --setportb 0 ... set PB3=PB4=LO
 
 ### SWITCH READ
 press SWITCH

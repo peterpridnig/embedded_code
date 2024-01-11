@@ -12,6 +12,7 @@ $(PROGRAM): $(PROGRAM).c
 
 install : $(PROGRAM)
 	scp $(PROGRAM) root@10.0.0.117:/root
+	scp readme_spidevtest.md root@10.0.0.117:/root
 	cp $(PROGRAM) ../bin
 
 clean:
