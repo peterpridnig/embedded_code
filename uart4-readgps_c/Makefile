@@ -2,7 +2,7 @@
 # make CPP=arm-buildroot-linux-gnueabihf-g++
 
 LOCAL_CFLAGS ?= -Wall -g
-LDLIBS=minmea.c
+LDLIBS = minmea.c -lncurses
 PROGRAM = uart4-readgps
 
 $(PROGRAM): $(PROGRAM).cpp
