@@ -1,24 +1,12 @@
 #include<iostream>
 #include<fstream>
 #include<cstring>
-#include<iomanip>
-#include<vector>
 
-#include<stdio.h>
-#include<fcntl.h>
-#include<unistd.h>
-#include<termios.h>
-#include<string.h>
-#include<stdlib.h>
-#include<sys/ioctl.h>
-#include<unistd.h> //for usleep
-#include<stdint.h>
-#include<stdlib.h>
-#include<string.h>
-#include <getopt.h>
 #include<ncurses.h>
-
 #include"minmea.h"
+
+
+#define GPS_DEVICE "/dev/ttyS4"
 
 using namespace std;
 
@@ -26,13 +14,18 @@ class Display {
 private:
   WINDOW *win {nullptr};
   int h, w;
+  int current_message_number {1};
+  int max_messages {1};
 
 public:
   Display();
   ~Display();
+  void ForwardMessage();
+  void rectangle(int,int,int,int);
   void GLL(const minmea_sentence_gll &frame);
   void GGA(const minmea_sentence_gga &frame);
-  void RMC(const minmea_sentence_rmc &frame);  
+  void RMC(const minmea_sentence_rmc &frame);
+  void GSV(const minmea_sentence_gsv &frame);  
 };
 
   
@@ -41,13 +34,16 @@ Display::Display() {
   cbreak();
   noecho();
   keypad(stdscr, TRUE);
-  win = newwin(15, 50, 2, 2);
-  wborder(win, 0, 0, 0, 0, 0, 0, 0, 0);
+  curs_set(0); //?
+  //win = newwin(20, 50, 2, 2);
+  //wborder(win, 0, 0, 0, 0, 0, 0, 0, 0);
   nodelay(stdscr,TRUE);
   getmaxyx(stdscr, this->h, this->w);
 
-  move(this->h-12,3);
-  addstr("GPS READOUT press SPACE to quit");
+  this->rectangle(this->h-21,1,this->h-2,100);
+  
+  move(this->h-20,3);
+  addstr("GPS READOUT (L80-39 + CP2102USB Serial): 'q'...quit 'SPACE'...next message");
   refresh();
 }
 
@@ -55,13 +51,30 @@ Display::~Display() {
   endwin();
 }
 
+void Display::ForwardMessage() {
+  this->current_message_number++;
+  
+  if ( (this->current_message_number) > this->max_messages) {this->current_message_number=1; }
+}
+
+void Display::rectangle(int y1, int x1, int y2, int x2)
+{
+    mvhline(y1, x1, 0, x2-x1);
+    mvhline(y2, x1, 0, x2-x1);
+    mvvline(y1, x1, 0, y2-y1);
+    mvvline(y1, x2, 0, y2-y1);
+    mvaddch(y1, x1, ACS_ULCORNER);
+    mvaddch(y2, x1, ACS_LLCORNER);
+    mvaddch(y1, x2, ACS_URCORNER);
+    mvaddch(y2, x2, ACS_LRCORNER);
+}
 
 void Display::GLL(const minmea_sentence_gll &frame) {
   struct minmea_time t {frame.time};
 
   move(this->h-10,3);
   
-  printw("$GLL latitude, longitude and time: (%d,%d) %d:%d:%d\n",
+  printw("$GLL latitude, longitude and time: (%d,%d) %d:%d:%dn (UTC)",
 	 minmea_rescale(&frame.latitude, 1000),
 	 minmea_rescale(&frame.longitude, 1000),
 	 t.hours,t.minutes,t.seconds);
@@ -69,34 +82,34 @@ void Display::GLL(const minmea_sentence_gll &frame) {
   refresh();
 }
 
-void Display::GGA(const minmea_sentence_gga&frame) {
+void Display::GGA(const minmea_sentence_gga &frame) {
 
   move(this->h-8,3);
   
-  printw("$GGA: fix quality: %d\n", frame.fix_quality);
+  printw("$GGA: fix quality: %d", frame.fix_quality);
   refresh();
   
 }
 
-void Display::RMC(const minmea_sentence_rmc&frame) {
+void Display::RMC(const minmea_sentence_rmc &frame) {
 
   move(this->h-6,3);
 
-  printw("$RMC raw coordinates and speed: (%d/%d,%d/%d) %d/%d\n",
+  printw("$RMC raw coordinates and speed: (%d/%d,%d/%d) %d/%d",
 	 frame.latitude.value, frame.latitude.scale,
 	 frame.longitude.value, frame.longitude.scale,
 	 frame.speed.value, frame.speed.scale);
 
   move(this->h-5,3);
   
-  printw("$RMC fixed-point coordinates and speed scaled to three decimal places: (%d,%d) %d\n",
+  printw("$RMC fixed-point coordinates and speed scaled to three decimal places: (%d,%d) %d",
 	 minmea_rescale(&frame.latitude, 1000),
 	 minmea_rescale(&frame.longitude, 1000),
 	 minmea_rescale(&frame.speed, 1000));
 
   move(this->h-4,3);
   
-  printw("$RMC floating point degree coordinates and speed: (%f,%f) %f\n",
+  printw("$RMC floating point degree coordinates and speed: (%f,%f) %f",
 	 minmea_tocoord(&frame.latitude),
 	 minmea_tocoord(&frame.longitude),
 	 minmea_tofloat(&frame.speed));
@@ -104,24 +117,54 @@ void Display::RMC(const minmea_sentence_rmc&frame) {
   refresh();
 }
 
+void Display::GSV(const minmea_sentence_gsv &frame) {
+   
+  move(this->h-17,3);
+  printw("$GSV: satellites in view: %d", frame.total_sats);
+
+  if (frame.msg_nr == this->current_message_number) {
+    
+    move(this->h-16,3);
+    printw("$GSV: message %d of %d", frame.msg_nr, frame.total_msgs);
+
+    this->max_messages=frame.total_msgs;
+    if (this->current_message_number>this->max_messages) this->current_message_number=this->max_messages;
+    
+    for (int i = 0; i < 4; i++) {
+      move(this->h-12-i,3);	      
+      printw("$GSV: sat nr %d, elevation: %d, azimuth: %d, snr: %d dbm",
+	     frame.sats[i].nr,
+	     frame.sats[i].elevation,
+	     frame.sats[i].azimuth,
+	     frame.sats[i].snr);
+    }
+  }
+
+}
+
+
 int main() {
 
   ifstream fs;
-  string filename {"/dev/ttyS4"};
+  string filename {GPS_DEVICE};
   string line {};
-
-  Display D;
   
   fs.open(filename.c_str());
   if (!fs.is_open()){
-    perror("GPIO: read failed to open file ");
+    char failstr [100] {"Failed to open device file "};
+    strcat(failstr,GPS_DEVICE);
+    perror(failstr);
+    return 1;
   }
 
+  Display D;
+  
   int ch {0};
   
-  while ( (!fs.eof()) & (ch != 32 ) )
+  while ( (!fs.eof()) & (ch != 'q' ) )
     {
       ch = getch();
+      if (ch == 32) D.ForwardMessage();
       
       getline(fs,line);
       //cout << line << endl;
@@ -140,17 +183,7 @@ int main() {
 
       case MINMEA_SENTENCE_GSV: {
 	struct minmea_sentence_gsv frame;
-	if (minmea_parse_gsv(&frame, line.c_str())) {
-	  /*
-	  printf("$GSV: message %d of %d\n", frame.msg_nr, frame.total_msgs);
-	  printf("$GSV: satellites in view: %d\n", frame.total_sats);
-	  for (int i = 0; i < 4; i++)
-	    printf("$GSV: sat nr %d, elevation: %d, azimuth: %d, snr: %d dbm\n",
-		   frame.sats[i].nr,
-		   frame.sats[i].elevation,
-		   frame.sats[i].azimuth,
-		   frame.sats[i].snr);
-	  */
+	if (minmea_parse_gsv(&frame, line.c_str())) { D.GSV(frame); 
 	}
       } break;
 
