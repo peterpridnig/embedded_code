@@ -16,6 +16,8 @@ private:
   int h, w;
   int current_message_number {1};
   int max_messages {1};
+  char rotorstring[9] = "|/-\\|/-\\";
+  size_t rotor_position {0};
 
 public:
   Display();
@@ -25,7 +27,8 @@ public:
   void GLL(const minmea_sentence_gll &frame);
   void GGA(const minmea_sentence_gga &frame);
   void RMC(const minmea_sentence_rmc &frame);
-  void GSV(const minmea_sentence_gsv &frame);  
+  void GSV(const minmea_sentence_gsv &frame);
+  void DrawRotor();
 };
 
   
@@ -43,7 +46,7 @@ Display::Display() {
   this->rectangle(this->h-21,1,this->h-2,100);
   
   move(this->h-20,3);
-  addstr("GPS READOUT (L80-39 + CP2102USB Serial): 'q'...quit 'SPACE'...next message");
+  addstr("GPS READOUT [ ] (L80-39 + CP2102USB Serial): 'q'...quit 'SPACE'...next message");
   refresh();
 }
 
@@ -74,75 +77,77 @@ void Display::GLL(const minmea_sentence_gll &frame) {
 
   move(this->h-10,3);
   
-  printw("$GLL latitude, longitude and time: (%d,%d) %d:%d:%dn (UTC)",
+  printw("$GLL latitude, longitude and time: (%d,%d) %d:%d:%dn (UTC)    ",
 	 minmea_rescale(&frame.latitude, 1000),
 	 minmea_rescale(&frame.longitude, 1000),
 	 t.hours,t.minutes,t.seconds);
-
   refresh();
 }
 
 void Display::GGA(const minmea_sentence_gga &frame) {
-
   move(this->h-8,3);
-  
   printw("$GGA: fix quality: %d", frame.fix_quality);
   refresh();
-  
 }
 
 void Display::RMC(const minmea_sentence_rmc &frame) {
 
   move(this->h-6,3);
 
-  printw("$RMC raw coordinates and speed: (%d/%d,%d/%d) %d/%d",
+  printw("$RMC raw coordinates and speed: (%d/%d,%d/%d) %d/%d    ",
 	 frame.latitude.value, frame.latitude.scale,
 	 frame.longitude.value, frame.longitude.scale,
 	 frame.speed.value, frame.speed.scale);
 
   move(this->h-5,3);
   
-  printw("$RMC fixed-point coordinates and speed scaled to three decimal places: (%d,%d) %d",
+  printw("$RMC fixed-point coordinates and speed scaled to three decimal places: (%d,%d) %d    ",
 	 minmea_rescale(&frame.latitude, 1000),
 	 minmea_rescale(&frame.longitude, 1000),
 	 minmea_rescale(&frame.speed, 1000));
 
   move(this->h-4,3);
   
-  printw("$RMC floating point degree coordinates and speed: (%f,%f) %f",
+  printw("$RMC floating point degree coordinates and speed: (%f,%f) %f    ",
 	 minmea_tocoord(&frame.latitude),
 	 minmea_tocoord(&frame.longitude),
 	 minmea_tofloat(&frame.speed));
-
   refresh();
 }
 
 void Display::GSV(const minmea_sentence_gsv &frame) {
    
   move(this->h-17,3);
-  printw("$GSV: satellites in view: %d", frame.total_sats);
+  printw("$GSV: satellites in view: %d    ", frame.total_sats);
 
   if (frame.msg_nr == this->current_message_number) {
     
     move(this->h-16,3);
-    printw("$GSV: message %d of %d", frame.msg_nr, frame.total_msgs);
+    printw("$GSV: message %d of %d    ", frame.msg_nr, frame.total_msgs);
 
     this->max_messages=frame.total_msgs;
     if (this->current_message_number>this->max_messages) this->current_message_number=this->max_messages;
     
     for (int i = 0; i < 4; i++) {
       move(this->h-12-i,3);	      
-      printw("$GSV: sat nr %d, elevation: %d, azimuth: %d, snr: %d dbm",
+      printw("$GSV: sat nr %d, elevation: %d, azimuth: %d, snr: %d dbm    ",
 	     frame.sats[i].nr,
 	     frame.sats[i].elevation,
 	     frame.sats[i].azimuth,
 	     frame.sats[i].snr);
     }
   }
-
+  refresh();
 }
 
+void Display::DrawRotor() {
+  rotor_position++; if (rotor_position>strlen(rotorstring)) rotor_position=0;
+  move(this->h-20,16);
+  printw("%c",rotorstring[rotor_position]);
+  refresh();
+}
 
+    
 int main() {
 
   ifstream fs;
@@ -165,6 +170,8 @@ int main() {
     {
       ch = getch();
       if (ch == 32) D.ForwardMessage();
+
+      D.DrawRotor();
       
       getline(fs,line);
       //cout << line << endl;
@@ -188,7 +195,6 @@ int main() {
       } break;
 
       case MINMEA_SENTENCE_GLL: { 
-
 	struct minmea_sentence_gll frame;
 	if (minmea_parse_gll(&frame, line.c_str())) { D.GLL(frame); }
       } break;
