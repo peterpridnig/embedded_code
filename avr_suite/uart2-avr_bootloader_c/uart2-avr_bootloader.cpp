@@ -683,7 +683,7 @@ void print_usage(const string prog)
   cout << "  -e --enter               enter bootloader"              << endl;
   cout << "  -w --writeflash [file]   write hex file to flash"       << endl;
   cout << "  -f --readflash           read flash memoy"              << endl;
-  cout << "  -p --progstarth          start programy"                << endl;  
+  cout << "  -p --progstart           start program "                << endl;  
   cout << "  -c --cleanup             unexport RST pin"              << endl;  
   exit(1);
 }

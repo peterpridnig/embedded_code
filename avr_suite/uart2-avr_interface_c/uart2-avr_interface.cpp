@@ -614,8 +614,9 @@ void print_usage(const string prog)
   cout << "                           -------------------"           << endl;
   cout << "                           pb4 pb3 pb2 pb1 pb0"           << endl;
   cout << "                           swi led rxd txd led"           << endl;
-  cout << "                            pd org -na -na red"           << endl;  
-  cout << "                           -------------------"           << endl;  
+  cout << "                            1)  2) -na -na  3)"           << endl;
+  cout << "                        1) pulldn 2) orange  3) red"      << endl;  
+  cout << "                        ---------------------------"      << endl;  
   cout << "  -c --cleanup             unexport RST pin"              << endl;  
   exit(1);
 }

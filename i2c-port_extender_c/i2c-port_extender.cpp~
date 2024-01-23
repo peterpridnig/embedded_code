@@ -1,0 +1,78 @@
+
+
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/i2c-dev.h>
+#include <time.h>
+#include <math.h>
+
+/* Address of the PORT EXTENDER */
+#define I2C_ADDRESS 0x27
+
+int f;
+
+int ReadPortExtender()
+{
+
+  int n;
+  char buf[10];
+  
+  /* Now read 2 bytes from that address */
+  n = read(f, buf, 2);
+  if (n == -1) {
+    perror("read");
+    return 1;
+  }
+
+  printf("Read Result: 0x%x 0x%x\n",
+	 buf[0], buf[1]);
+
+  return 0;
+}
+
+
+int WritePortExtender(char msb, char lsb)
+{
+
+  int n;
+  char buf[10];
+  
+  buf[0] = msb;
+  buf[1] = lsb;
+  
+  n = write(f, buf, 2);
+  if (n == -1) {
+    perror("write");
+    return 1;
+  }
+  
+  printf("Written: 0x%x 0x%x\n",
+	 buf[0], buf[1]);
+
+  return 0;
+}
+
+int main(void)
+{
+  /* Open the adapter and set the address of the I2C device */
+  f = open("/dev/i2c-2", O_RDWR);
+  if (f < 0) {
+    perror("/dev/i2c-0:");
+    return 1;
+  }
+
+  /* Set the address of the i2c slave device */
+  if (ioctl(f, I2C_SLAVE, I2C_ADDRESS) == -1) {
+    perror("ioctl I2C_SLAVE");
+    return 1;
+  }
+
+  ReadPortExtender();
+  WritePortExtender(255,pow(2,4)); // 2^4 = pin#5
+  ReadPortExtender();  
+  
+  close(f);
+  return 0;
+}
